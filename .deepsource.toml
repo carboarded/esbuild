@@ -1,20 +1,8 @@
 version = 1
 
 [[analyzers]]
-name = "javascript"
-enabled = true
-
-[[analyzers]]
 name = "go"
 enabled = true
 
   [analyzers.meta]
   import_root = "github.com/carboarded/esbuild"
-
-[[transformers]]
-name = "prettier"
-enabled = true
-
-[[transformers]]
-name = "gofumpt"
-enabled = true
