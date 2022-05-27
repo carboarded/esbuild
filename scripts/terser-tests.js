@@ -325,7 +325,7 @@ function parse_test(file) {
           test[label.name] = read_string(stat);
         } else if (label.name == "reminify") {
           var value = read_boolean(stat);
-          test.reminify = value == null || value;
+          test.reminify = value === null || value;
         } else if (label.name == "expect_stdout") {
           var body = stat.body;
           if (body instanceof U.AST_Boolean) {
