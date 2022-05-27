@@ -490,8 +490,10 @@ type InjectableExport struct {
 	Loc   logger.Loc
 }
 
-var filterMutex sync.Mutex
-var filterCache map[string]*regexp.Regexp
+var (
+	filterMutex sync.Mutex
+	filterCache map[string]*regexp.Regexp
+)
 
 func compileFilter(filter string) (result *regexp.Regexp) {
 	if filter == "" {

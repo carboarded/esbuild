@@ -131,12 +131,16 @@ func (s *suite) expectBundled(t *testing.T, args bundled) {
 	})
 }
 
-const snapshotsDir = "snapshots"
-const snapshotSplitter = "\n================================================================================\n"
+const (
+	snapshotsDir     = "snapshots"
+	snapshotSplitter = "\n================================================================================\n"
+)
 
-var globalTestMutex sync.Mutex
-var globalSuites map[*suite]bool
-var globalUpdateSnapshots bool
+var (
+	globalTestMutex       sync.Mutex
+	globalSuites          map[*suite]bool
+	globalUpdateSnapshots bool
+)
 
 func (s *suite) compareSnapshot(t *testing.T, testName string, generated string) {
 	t.Helper()

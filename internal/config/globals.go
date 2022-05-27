@@ -10,8 +10,10 @@ import (
 	"github.com/evanw/esbuild/internal/logger"
 )
 
-var processedGlobalsMutex sync.Mutex
-var processedGlobals *ProcessedDefines
+var (
+	processedGlobalsMutex sync.Mutex
+	processedGlobals      *ProcessedDefines
+)
 
 // If something is in this list, then a direct identifier expression or property
 // access chain matching this will be assumed to have no side effects and will

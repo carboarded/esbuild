@@ -254,8 +254,10 @@ func (a Path) ComesBeforeInSortedOrder(b Path) bool {
 				(a.Flags == b.Flags && a.IgnoredSuffix < b.IgnoredSuffix)))))
 }
 
-var noColorResult bool
-var noColorOnce sync.Once
+var (
+	noColorResult bool
+	noColorOnce   sync.Once
+)
 
 func hasNoColorEnvironmentVariable() bool {
 	noColorOnce.Do(func() {

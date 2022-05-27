@@ -4,43 +4,54 @@
 
 (async () => {
   // Make sure this script runs as an ES6 module so we can import both ES6 modules and CommonJS modules
-  if (typeof require !== 'undefined') {
-    const childProcess = require('child_process')
-    const child = childProcess.spawn('node', ['--experimental-modules', '--input-type=module'], {
-      cwd: __dirname,
-      stdio: ['pipe', 'inherit', 'inherit'],
-    })
-    child.stdin.write(require('fs').readFileSync(__filename))
-    child.stdin.end()
-    child.on('close', code => process.exit(code))
-    return
+  if (typeof require !== "undefined") {
+    const childProcess = require("child_process");
+    const child = childProcess.spawn(
+      "node",
+      ["--experimental-modules", "--input-type=module"],
+      {
+        cwd: __dirname,
+        stdio: ["pipe", "inherit", "inherit"],
+      }
+    );
+    child.stdin.write(require("fs").readFileSync(__filename));
+    child.stdin.end();
+    child.on("close", (code) => process.exit(code));
+    return;
   }
 
-  const { default: { buildBinary, dirname, removeRecursiveSync } } = await import('./esbuild.js');
-  const childProcess = await import('child_process');
-  const util = await import('util');
-  const path = await import('path');
-  const fs = await import('fs');
+  const {
+    default: { buildBinary, dirname, removeRecursiveSync },
+  } = await import("./esbuild.js");
+  const childProcess = await import("child_process");
+  const util = await import("util");
+  const path = await import("path");
+  const fs = await import("fs");
   const esbuildPath = buildBinary();
   let failureCount = 0;
   let nextTest = 0;
 
   function reportFailure(testDir, files, kind, error) {
     failureCount++;
-    console.log(`❌ FAILURE ${kind}: ${error}\n  DIR: ${testDir}` +
-      Object.keys(files).map(x => `\n  ${x} => ${files[x]}`).join(''));
+    console.log(
+      `❌ FAILURE ${kind}: ${error}\n  DIR: ${testDir}` +
+        Object.keys(files)
+          .map((x) => `\n  ${x} => ${files[x]}`)
+          .join("")
+    );
   }
 
   function circularObjectToString(root) {
     let map = new Map();
     let counter = 0;
-    let visit = obj => {
-      if (typeof obj !== 'object') return JSON.stringify(obj);
+    let visit = (obj) => {
+      if (typeof obj !== "object") return JSON.stringify(obj);
       if (map.has(obj)) return `$${map.get(obj)}`;
       map.set(obj, counter++);
       const keys = Object.keys(obj).sort();
-      return `$${map.get(obj)} = {${keys.map(key =>
-        `${JSON.stringify(key)}: ${visit(obj[key])}`).join(', ')}}`;
+      return `$${map.get(obj)} = {${keys
+        .map((key) => `${JSON.stringify(key)}: ${visit(obj[key])}`)
+        .join(", ")}}`;
     };
     return visit(root);
   }
@@ -52,22 +63,22 @@
   }
 
   async function fuzzOnce(parentDir) {
-    const mjs_or_cjs = () => Math.random() < 0.1 ? 'cjs' : 'mjs';
+    const mjs_or_cjs = () => (Math.random() < 0.1 ? "cjs" : "mjs");
     const names = [
-      'a.' + mjs_or_cjs(),
-      'b.' + mjs_or_cjs(),
-      'c.' + mjs_or_cjs(),
-      'd.' + mjs_or_cjs(),
-      'e.' + mjs_or_cjs(),
+      "a." + mjs_or_cjs(),
+      "b." + mjs_or_cjs(),
+      "c." + mjs_or_cjs(),
+      "d." + mjs_or_cjs(),
+      "e." + mjs_or_cjs(),
     ];
-    const randomName = () => names[Math.random() * names.length | 0];
+    const randomName = () => names[(Math.random() * names.length) | 0];
     const files = {};
 
     for (const name of names) {
-      if (name.endsWith('.cjs')) {
+      if (name.endsWith(".cjs")) {
         files[name] = `module.exports = 123`;
       } else {
-        switch (Math.random() * 5 | 0) {
+        switch ((Math.random() * 5) | 0) {
           case 0:
             files[name] = `export const foo = 123`;
             break;
@@ -81,7 +92,9 @@
             files[name] = `export * as foo from "./${randomName()}"`;
             break;
           case 4:
-            files[name] = `import * as foo from "./${randomName()}"; export {foo}`;
+            files[
+              name
+            ] = `import * as foo from "./${randomName()}"; export {foo}`;
             break;
         }
       }
@@ -98,23 +111,22 @@
     // Load the raw module using node
     const entryPoint = path.join(testDir, names[0]);
     let realExports = await import(entryPoint);
-    if (entryPoint.endsWith('.cjs')) realExports = realExports.default;
+    if (entryPoint.endsWith(".cjs")) realExports = realExports.default;
 
     // Bundle to a CommonJS module using esbuild
-    const cjsFile = path.join(testDir, 'out.cjs');
-    await util.promisify(childProcess.execFile)(esbuildPath, [
-      '--bundle',
-      '--outfile=' + cjsFile,
-      '--format=cjs',
-      entryPoint,
-    ], { stdio: 'pipe' });
+    const cjsFile = path.join(testDir, "out.cjs");
+    await util.promisify(childProcess.execFile)(
+      esbuildPath,
+      ["--bundle", "--outfile=" + cjsFile, "--format=cjs", entryPoint],
+      { stdio: "pipe" }
+    );
 
     // Validate the CommonJS module bundle
     try {
       let { default: cjsExports } = await import(cjsFile);
       checkSameExportObject(realExports, cjsExports);
     } catch (e) {
-      reportFailure(testDir, files, 'cjs', e + '');
+      reportFailure(testDir, files, "cjs", e + "");
       return;
     }
 
@@ -122,7 +134,7 @@
     removeRecursiveSync(testDir);
   }
 
-  const parentDir = path.join(dirname, '.es6-fuzzer');
+  const parentDir = path.join(dirname, ".es6-fuzzer");
   removeRecursiveSync(parentDir);
   fs.mkdirSync(parentDir);
 
@@ -141,4 +153,8 @@
   if (failureCount === 0) {
     removeRecursiveSync(parentDir);
   }
-})().catch(e => setTimeout(() => { throw e }));
+})().catch((e) =>
+  setTimeout(() => {
+    throw e;
+  })
+);

@@ -945,9 +945,11 @@ func (lexer *Lexer) NextJSXElementChild() {
 					} else {
 						replacement = "{'>'}"
 					}
-					msg := logger.Msg{Kind: logger.Error, Data: lexer.tracker.MsgData(logger.Range{Loc: logger.Loc{Start: int32(lexer.end)}, Len: 1},
-						fmt.Sprintf("The character \"%c\" is not valid inside a JSX element", lexer.codePoint)),
-						Notes: []logger.MsgData{{Text: fmt.Sprintf("Did you mean to escape it as %q instead?", replacement)}}}
+					msg := logger.Msg{
+						Kind: logger.Error, Data: lexer.tracker.MsgData(logger.Range{Loc: logger.Loc{Start: int32(lexer.end)}, Len: 1},
+							fmt.Sprintf("The character \"%c\" is not valid inside a JSX element", lexer.codePoint)),
+						Notes: []logger.MsgData{{Text: fmt.Sprintf("Did you mean to escape it as %q instead?", replacement)}},
+					}
 					msg.Data.Location.Suggestion = replacement
 					if !lexer.ts.Parse {
 						// TypeScript treats this as an error but Babel doesn't treat this

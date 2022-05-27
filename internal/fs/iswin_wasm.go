@@ -7,8 +7,10 @@ import (
 	"os"
 )
 
-var checkedIfWindows bool
-var cachedIfWindows bool
+var (
+	checkedIfWindows bool
+	cachedIfWindows  bool
+)
 
 func CheckIfWindows() bool {
 	if !checkedIfWindows {

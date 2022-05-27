@@ -1,42 +1,47 @@
-import fs = require('fs');
-import os = require('os');
-import path = require('path');
+import fs = require("fs");
+import os = require("os");
+import path = require("path");
 
 // This feature was added to give external code a way to modify the binary
 // path without modifying the code itself. Do not remove this because
 // external code relies on this.
-export var ESBUILD_BINARY_PATH: string | undefined = process.env.ESBUILD_BINARY_PATH || ESBUILD_BINARY_PATH;
+export var ESBUILD_BINARY_PATH: string | undefined =
+  process.env.ESBUILD_BINARY_PATH || ESBUILD_BINARY_PATH;
 
 export const knownWindowsPackages: Record<string, string> = {
-  'win32 arm64 LE': 'esbuild-windows-arm64',
-  'win32 ia32 LE': 'esbuild-windows-32',
-  'win32 x64 LE': 'esbuild-windows-64',
+  "win32 arm64 LE": "esbuild-windows-arm64",
+  "win32 ia32 LE": "esbuild-windows-32",
+  "win32 x64 LE": "esbuild-windows-64",
 };
 
 export const knownUnixlikePackages: Record<string, string> = {
-  'android arm64 LE': 'esbuild-android-arm64',
-  'darwin arm64 LE': 'esbuild-darwin-arm64',
-  'darwin x64 LE': 'esbuild-darwin-64',
-  'freebsd arm64 LE': 'esbuild-freebsd-arm64',
-  'freebsd x64 LE': 'esbuild-freebsd-64',
-  'linux arm LE': 'esbuild-linux-arm',
-  'linux arm64 LE': 'esbuild-linux-arm64',
-  'linux ia32 LE': 'esbuild-linux-32',
-  'linux mips64el LE': 'esbuild-linux-mips64le',
-  'linux ppc64 LE': 'esbuild-linux-ppc64le',
-  'linux riscv64 LE': 'esbuild-linux-riscv64',
-  'linux s390x BE': 'esbuild-linux-s390x',
-  'linux x64 LE': 'esbuild-linux-64',
-  'netbsd x64 LE': 'esbuild-netbsd-64',
-  'openbsd x64 LE': 'esbuild-openbsd-64',
-  'sunos x64 LE': 'esbuild-sunos-64',
+  "android arm64 LE": "esbuild-android-arm64",
+  "darwin arm64 LE": "esbuild-darwin-arm64",
+  "darwin x64 LE": "esbuild-darwin-64",
+  "freebsd arm64 LE": "esbuild-freebsd-arm64",
+  "freebsd x64 LE": "esbuild-freebsd-64",
+  "linux arm LE": "esbuild-linux-arm",
+  "linux arm64 LE": "esbuild-linux-arm64",
+  "linux ia32 LE": "esbuild-linux-32",
+  "linux mips64el LE": "esbuild-linux-mips64le",
+  "linux ppc64 LE": "esbuild-linux-ppc64le",
+  "linux riscv64 LE": "esbuild-linux-riscv64",
+  "linux s390x BE": "esbuild-linux-s390x",
+  "linux x64 LE": "esbuild-linux-64",
+  "netbsd x64 LE": "esbuild-netbsd-64",
+  "openbsd x64 LE": "esbuild-openbsd-64",
+  "sunos x64 LE": "esbuild-sunos-64",
 };
 
 export const knownWebAssemblyFallbackPackages: Record<string, string> = {
-  'android x64 LE': 'esbuild-android-64',
+  "android x64 LE": "esbuild-android-64",
 };
 
-export function pkgAndSubpathForCurrentPlatform(): { pkg: string, subpath: string, isWASM: boolean } {
+export function pkgAndSubpathForCurrentPlatform(): {
+  pkg: string;
+  subpath: string;
+  isWASM: boolean;
+} {
   let pkg: string;
   let subpath: string;
   let isWASM = false;
@@ -44,21 +49,15 @@ export function pkgAndSubpathForCurrentPlatform(): { pkg: string, subpath: strin
 
   if (platformKey in knownWindowsPackages) {
     pkg = knownWindowsPackages[platformKey];
-    subpath = 'esbuild.exe';
-  }
-
-  else if (platformKey in knownUnixlikePackages) {
+    subpath = "esbuild.exe";
+  } else if (platformKey in knownUnixlikePackages) {
     pkg = knownUnixlikePackages[platformKey];
-    subpath = 'bin/esbuild';
-  }
-
-  else if (platformKey in knownWebAssemblyFallbackPackages) {
+    subpath = "bin/esbuild";
+  } else if (platformKey in knownWebAssemblyFallbackPackages) {
     pkg = knownWebAssemblyFallbackPackages[platformKey];
-    subpath = 'bin/esbuild';
+    subpath = "bin/esbuild";
     isWASM = true;
-  }
-
-  else {
+  } else {
     throw new Error(`Unsupported platform: ${platformKey}`);
   }
 
@@ -66,24 +65,24 @@ export function pkgAndSubpathForCurrentPlatform(): { pkg: string, subpath: strin
 }
 
 function pkgForSomeOtherPlatform(): string | null {
-  const libMainJS = require.resolve('esbuild');
-  const nodeModulesDirectory = path.dirname(path.dirname(path.dirname(libMainJS)));
+  const libMainJS = require.resolve("esbuild");
+  const nodeModulesDirectory = path.dirname(
+    path.dirname(path.dirname(libMainJS))
+  );
 
-  if (path.basename(nodeModulesDirectory) === 'node_modules') {
+  if (path.basename(nodeModulesDirectory) === "node_modules") {
     for (const unixKey in knownUnixlikePackages) {
       try {
         const pkg = knownUnixlikePackages[unixKey];
         if (fs.existsSync(path.join(nodeModulesDirectory, pkg))) return pkg;
-      } catch {
-      }
+      } catch {}
     }
 
     for (const windowsKey in knownWindowsPackages) {
       try {
         const pkg = knownWindowsPackages[windowsKey];
         if (fs.existsSync(path.join(nodeModulesDirectory, pkg))) return pkg;
-      } catch {
-      }
+      } catch {}
     }
   }
 
@@ -91,11 +90,14 @@ function pkgForSomeOtherPlatform(): string | null {
 }
 
 export function downloadedBinPath(pkg: string, subpath: string): string {
-  const esbuildLibDir = path.dirname(require.resolve('esbuild'));
-  return path.join(esbuildLibDir, `downloaded-${pkg}-${path.basename(subpath)}`);
+  const esbuildLibDir = path.dirname(require.resolve("esbuild"));
+  return path.join(
+    esbuildLibDir,
+    `downloaded-${pkg}-${path.basename(subpath)}`
+  );
 }
 
-export function generateBinPath(): { binPath: string, isWASM: boolean } {
+export function generateBinPath(): { binPath: string; isWASM: boolean } {
   // This feature was added to give external code a way to modify the binary
   // path without modifying the code itself. Do not remove this because
   // external code relies on this (in addition to esbuild's own test suite).
@@ -180,13 +182,15 @@ by esbuild to install the correct binary executable for your current platform.`)
   // the real file system.
   let isYarnPnP = false;
   try {
-    require('pnpapi');
+    require("pnpapi");
     isYarnPnP = true;
-  } catch (e) {
-  }
+  } catch (e) {}
   if (isYarnPnP) {
-    const esbuildLibDir = path.dirname(require.resolve('esbuild'));
-    const binTargetPath = path.join(esbuildLibDir, `pnpapi-${pkg}-${path.basename(subpath)}`);
+    const esbuildLibDir = path.dirname(require.resolve("esbuild"));
+    const binTargetPath = path.join(
+      esbuildLibDir,
+      `pnpapi-${pkg}-${path.basename(subpath)}`
+    );
     if (!fs.existsSync(binTargetPath)) {
       fs.copyFileSync(binPath, binTargetPath);
       fs.chmodSync(binTargetPath, 0o755);

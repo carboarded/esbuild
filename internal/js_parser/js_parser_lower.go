@@ -302,8 +302,10 @@ func (p *parser) lowerFunction(
 					(*args)[i].Binding.Data = &js_ast.BIdentifier{Ref: ref}
 
 					// Append a variable declaration to the function body
-					prefixStmts = append(prefixStmts, js_ast.Stmt{Loc: arg.Binding.Loc,
-						Data: &js_ast.SLocal{Kind: js_ast.LocalVar, Decls: decls}})
+					prefixStmts = append(prefixStmts, js_ast.Stmt{
+						Loc:  arg.Binding.Loc,
+						Data: &js_ast.SLocal{Kind: js_ast.LocalVar, Decls: decls},
+					})
 				}
 			}
 		}
@@ -1490,8 +1492,10 @@ func (p *parser) lowerObjectRestHelper(
 		for i, capturedKey := range capturedKeys {
 			keysToExclude[i] = capturedKey()
 		}
-		assign(binding, p.callRuntime(binding.Loc, "__objRest", []js_ast.Expr{init,
-			{Loc: binding.Loc, Data: &js_ast.EArray{Items: keysToExclude, IsSingleLine: isSingleLine}}}))
+		assign(binding, p.callRuntime(binding.Loc, "__objRest", []js_ast.Expr{
+			init,
+			{Loc: binding.Loc, Data: &js_ast.EArray{Items: keysToExclude, IsSingleLine: isSingleLine}},
+		}))
 	}
 
 	splitArrayPattern := func(

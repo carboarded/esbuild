@@ -1,353 +1,383 @@
 function generateTestCase(assign) {
-  let sideEffectCount = 0
-  let patternCount = 0
-  let limit = 10
-  let depth = 0
+  let sideEffectCount = 0;
+  let patternCount = 0;
+  let limit = 10;
+  let depth = 0;
 
   function choice(n) {
-    return Math.random() * n | 0
+    return (Math.random() * n) | 0;
   }
 
   function patternAndValue() {
-    patternCount++
+    patternCount++;
     switch (choice(3)) {
-      case 0: return array()
-      case 1: return object()
-      case 2: return [assign(), choice(10), choice(10)]
+      case 0:
+        return array();
+      case 1:
+        return object();
+      case 2:
+        return [assign(), choice(10), choice(10)];
     }
   }
 
   function sideEffect(result) {
-    return `s(${sideEffectCount++}${result ? `, ${result}` : ''})`
+    return `s(${sideEffectCount++}${result ? `, ${result}` : ""})`;
   }
 
   function indent(open, items, close) {
-    let tab = '  '
-    items = items.map(i => `\n${tab.repeat(depth + 1)}${i}`).join(',')
-    return `${open}${items}\n${tab.repeat(depth)}${close}`
+    let tab = "  ";
+    items = items.map((i) => `\n${tab.repeat(depth + 1)}${i}`).join(",");
+    return `${open}${items}\n${tab.repeat(depth)}${close}`;
   }
 
   function id() {
-    return String.fromCharCode('a'.charCodeAt(0) + choice(3))
+    return String.fromCharCode("a".charCodeAt(0) + choice(3));
   }
 
   function array() {
-    let count = 1 + choice(2)
-    let pattern = []
-    let value = []
+    let count = 1 + choice(2);
+    let pattern = [];
+    let value = [];
 
-    depth++
+    depth++;
     for (let i = 0; i < count; i++) {
-      if (patternCount > limit) break
-      let [pat, val, defVal] = patternAndValue()
+      if (patternCount > limit) break;
+      let [pat, val, defVal] = patternAndValue();
       switch (choice(3)) {
         case 0:
-          pattern.push(pat)
-          value.push(val)
-          break
+          pattern.push(pat);
+          value.push(val);
+          break;
         case 1:
-          pattern.push(`${pat} = ${sideEffect(defVal)}`)
-          value.push(val)
-          break
+          pattern.push(`${pat} = ${sideEffect(defVal)}`);
+          value.push(val);
+          break;
         case 2:
-          pattern.push(`${pat} = ${sideEffect(defVal)}`)
-          value.push(defVal)
-          break
+          pattern.push(`${pat} = ${sideEffect(defVal)}`);
+          value.push(defVal);
+          break;
       }
-      if (choice(10) < 8) value.push(val)
+      if (choice(10) < 8) value.push(val);
     }
     if (choice(2)) {
-      pattern.push(`...${assign()}`)
-      if (choice(10) < 8) value.push(choice(10))
+      pattern.push(`...${assign()}`);
+      if (choice(10) < 8) value.push(choice(10));
     }
-    depth--
+    depth--;
 
-    return [
-      indent('[', pattern, ']'),
-      indent('[', value, ']'),
-      '[]',
-    ]
+    return [indent("[", pattern, "]"), indent("[", value, "]"), "[]"];
   }
 
   function object() {
-    let count = 1 + choice(2)
-    let pattern = []
-    let value = []
-    let valKeys = new Set()
+    let count = 1 + choice(2);
+    let pattern = [];
+    let value = [];
+    let valKeys = new Set();
 
-    depth++
+    depth++;
     for (let i = 0; i < count; i++) {
-      if (patternCount > limit) break
-      let valKey = id()
-      if (valKeys.has(valKey)) continue
-      valKeys.add(valKey)
-      let patKey = choice() ? valKey : `[${sideEffect(`'${valKey}'`)}]`
-      let [pat, val, defVal] = patternAndValue()
+      if (patternCount > limit) break;
+      let valKey = id();
+      if (valKeys.has(valKey)) continue;
+      valKeys.add(valKey);
+      let patKey = choice() ? valKey : `[${sideEffect(`'${valKey}'`)}]`;
+      let [pat, val, defVal] = patternAndValue();
       switch (choice(3)) {
         case 0:
-          pattern.push(`${patKey}: ${pat}`)
-          value.push(`${valKey}: ${val}`)
-          break
+          pattern.push(`${patKey}: ${pat}`);
+          value.push(`${valKey}: ${val}`);
+          break;
         case 1:
-          pattern.push(`${patKey}: ${pat} = ${sideEffect(defVal)}`)
-          value.push(`${valKey}: ${val}`)
-          break
+          pattern.push(`${patKey}: ${pat} = ${sideEffect(defVal)}`);
+          value.push(`${valKey}: ${val}`);
+          break;
         case 2:
-          pattern.push(`${patKey}: ${pat} = ${sideEffect(defVal)}`)
-          value.push(`${valKey}: ${defVal}`)
-          break
+          pattern.push(`${patKey}: ${pat} = ${sideEffect(defVal)}`);
+          value.push(`${valKey}: ${defVal}`);
+          break;
       }
     }
     if (choice(2)) {
-      pattern.push(`...${assign()}`)
-      if (choice(10) < 8) value.push(`${id()}: ${choice(10)}`)
+      pattern.push(`...${assign()}`);
+      if (choice(10) < 8) value.push(`${id()}: ${choice(10)}`);
     }
-    depth--
+    depth--;
 
-    return [
-      indent('{', pattern, '}'),
-      indent('{', value, '}'),
-      '{}',
-    ]
+    return [indent("{", pattern, "}"), indent("{", value, "}"), "{}"];
   }
 
-  return choice(2) ? array() : object()
+  return choice(2) ? array() : object();
 }
 
 function evaluate(code) {
-  let effectTrace = []
-  let assignTarget = {}
-  let sideEffect = (id, value) => (effectTrace.push(id), value)
-  new Function('a', 's', code)(assignTarget, sideEffect)
-  return JSON.stringify({ assignTarget, effectTrace })
+  let effectTrace = [];
+  let assignTarget = {};
+  let sideEffect = (id, value) => (effectTrace.push(id), value);
+  new Function("a", "s", code)(assignTarget, sideEffect);
+  return JSON.stringify({ assignTarget, effectTrace });
 }
 
 function generateTestCases(trials) {
-  let testCases = []
+  let testCases = [];
 
   while (testCases.length < trials) {
-    let ids = []
-    let assignCount = 0
+    let ids = [];
+    let assignCount = 0;
     let [pattern, value] = generateTestCase(() => {
-      let id = `_${assignCount++}`
-      ids.push(id)
-      return id
-    })
+      let id = `_${assignCount++}`;
+      ids.push(id);
+      return id;
+    });
     try {
-      evaluate(`(${pattern.replace(/_/g, 'a._')} = ${value});`)
-      testCases.push([pattern, value, ids])
-    } catch (e) {
-    }
+      evaluate(`(${pattern.replace(/_/g, "a._")} = ${value});`);
+      testCases.push([pattern, value, ids]);
+    } catch (e) {}
   }
 
-  return testCases
+  return testCases;
 }
 
 function AssignmentOperator([pattern, value]) {
-  let ts = `(${pattern.replace(/_/g, 'a._')} = ${value});`
-  let js = ts
-  return { js, ts }
+  let ts = `(${pattern.replace(/_/g, "a._")} = ${value});`;
+  let js = ts;
+  return { js, ts };
 }
 
 function NamespaceExport([pattern, value]) {
-  let ts = `namespace a { export const ${`${pattern} = ${value}`} }`
-  let js = `(${pattern.replace(/_/g, 'a._')} = ${value});`
-  return { js, ts }
+  let ts = `namespace a { export const ${`${pattern} = ${value}`} }`;
+  let js = `(${pattern.replace(/_/g, "a._")} = ${value});`;
+  return { js, ts };
 }
 
 function ConstDeclaration([pattern, value, ids]) {
-  let ts = `const ${pattern} = ${value};${ids.map(id => `\na.${id} = ${id};`).join('')}`
-  let js = ts
-  return { js, ts }
+  let ts = `const ${pattern} = ${value};${ids
+    .map((id) => `\na.${id} = ${id};`)
+    .join("")}`;
+  let js = ts;
+  return { js, ts };
 }
 
 function LetDeclaration([pattern, value, ids]) {
-  let ts = `let ${pattern} = ${value};${ids.map(id => `\na.${id} = ${id};`).join('')}`
-  let js = ts
-  return { js, ts }
+  let ts = `let ${pattern} = ${value};${ids
+    .map((id) => `\na.${id} = ${id};`)
+    .join("")}`;
+  let js = ts;
+  return { js, ts };
 }
 
 function VarDeclaration([pattern, value, ids]) {
-  let ts = `var ${pattern} = ${value};${ids.map(id => `\na.${id} = ${id};`).join('')}`
-  let js = ts
-  return { js, ts }
+  let ts = `var ${pattern} = ${value};${ids
+    .map((id) => `\na.${id} = ${id};`)
+    .join("")}`;
+  let js = ts;
+  return { js, ts };
 }
 
 function TryCatchBinding([pattern, value, ids]) {
-  let ts = `try { throw ${value} } catch (${pattern}) { ${ids.map(id => `a.${id} = ${id};`).join('\n')} }`
-  let js = ts
-  return { js, ts }
+  let ts = `try { throw ${value} } catch (${pattern}) { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} }`;
+  let js = ts;
+  return { js, ts };
 }
 
 function FunctionStatementArguments([pattern, value, ids]) {
-  let ts = `function foo(${pattern}) { ${ids.map(id => `a.${id} = ${id};`).join('\n')} }\nfoo(${value});`
-  let js = ts
-  return { js, ts }
+  let ts = `function foo(${pattern}) { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} }\nfoo(${value});`;
+  let js = ts;
+  return { js, ts };
 }
 
 function FunctionExpressionArguments([pattern, value, ids]) {
-  let ts = `(function(${pattern}) { ${ids.map(id => `a.${id} = ${id};`).join('\n')} })(${value});`
-  let js = ts
-  return { js, ts }
+  let ts = `(function(${pattern}) { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} })(${value});`;
+  let js = ts;
+  return { js, ts };
 }
 
 function ArrowFunctionArguments([pattern, value, ids]) {
-  let ts = `((${pattern}) => { ${ids.map(id => `a.${id} = ${id};`).join('\n')} })(${value});`
-  let js = ts
-  return { js, ts }
+  let ts = `((${pattern}) => { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} })(${value});`;
+  let js = ts;
+  return { js, ts };
 }
 
 function ObjectMethodArguments([pattern, value, ids]) {
-  let ts = `({ foo(${pattern}) { ${ids.map(id => `a.${id} = ${id};`).join('\n')} } }).foo(${value});`
-  let js = ts
-  return { js, ts }
+  let ts = `({ foo(${pattern}) { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} } }).foo(${value});`;
+  let js = ts;
+  return { js, ts };
 }
 
 function ClassStatementMethodArguments([pattern, value, ids]) {
-  let ts = `class Foo { foo(${pattern}) { ${ids.map(id => `a.${id} = ${id};`).join('\n')} } }\nnew Foo().foo(${value});`
-  let js = ts
-  return { js, ts }
+  let ts = `class Foo { foo(${pattern}) { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} } }\nnew Foo().foo(${value});`;
+  let js = ts;
+  return { js, ts };
 }
 
 function ClassExpressionMethodArguments([pattern, value, ids]) {
-  let ts = `(new (class { foo(${pattern}) { ${ids.map(id => `a.${id} = ${id};`).join('\n')} } })).foo(${value});`
-  let js = ts
-  return { js, ts }
+  let ts = `(new (class { foo(${pattern}) { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} } })).foo(${value});`;
+  let js = ts;
+  return { js, ts };
 }
 
 function ForLoopConst([pattern, value, ids]) {
-  let ts = `var i; for (const ${pattern} = ${value}; i < 1; i++) { ${ids.map(id => `a.${id} = ${id};`).join('\n')} }`
-  let js = ts
-  return { js, ts }
+  let ts = `var i; for (const ${pattern} = ${value}; i < 1; i++) { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} }`;
+  let js = ts;
+  return { js, ts };
 }
 
 function ForLoopLet([pattern, value, ids]) {
-  let ts = `for (let ${pattern} = ${value}, i = 0; i < 1; i++) { ${ids.map(id => `a.${id} = ${id};`).join('\n')} }`
-  let js = ts
-  return { js, ts }
+  let ts = `for (let ${pattern} = ${value}, i = 0; i < 1; i++) { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} }`;
+  let js = ts;
+  return { js, ts };
 }
 
 function ForLoopVar([pattern, value, ids]) {
-  let ts = `for (var ${pattern} = ${value}, i = 0; i < 1; i++) { ${ids.map(id => `a.${id} = ${id};`).join('\n')} }`
-  let js = ts
-  return { js, ts }
+  let ts = `for (var ${pattern} = ${value}, i = 0; i < 1; i++) { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} }`;
+  let js = ts;
+  return { js, ts };
 }
 
 function ForLoop([pattern, value]) {
-  let ts = `for (${pattern.replace(/_/g, 'a._')} = ${value}; 0; ) ;`
-  let js = ts
-  return { js, ts }
+  let ts = `for (${pattern.replace(/_/g, "a._")} = ${value}; 0; ) ;`;
+  let js = ts;
+  return { js, ts };
 }
 
 function ForOfLoopConst([pattern, value, ids]) {
-  let ts = `for (const ${pattern} of [${value}]) { ${ids.map(id => `a.${id} = ${id};`).join('\n')} }`
-  let js = ts
-  return { js, ts }
+  let ts = `for (const ${pattern} of [${value}]) { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} }`;
+  let js = ts;
+  return { js, ts };
 }
 
 function ForOfLoopLet([pattern, value, ids]) {
-  let ts = `for (let ${pattern} of [${value}]) { ${ids.map(id => `a.${id} = ${id};`).join('\n')} }`
-  let js = ts
-  return { js, ts }
+  let ts = `for (let ${pattern} of [${value}]) { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} }`;
+  let js = ts;
+  return { js, ts };
 }
 
 function ForOfLoopVar([pattern, value, ids]) {
-  let ts = `for (var ${pattern} of [${value}]) { ${ids.map(id => `a.${id} = ${id};`).join('\n')} }`
-  let js = ts
-  return { js, ts }
+  let ts = `for (var ${pattern} of [${value}]) { ${ids
+    .map((id) => `a.${id} = ${id};`)
+    .join("\n")} }`;
+  let js = ts;
+  return { js, ts };
 }
 
 function ForOfLoop([pattern, value]) {
-  let ts = `for (${pattern.replace(/_/g, 'a._')} of [${value}]) ;`
-  let js = ts
-  return { js, ts }
+  let ts = `for (${pattern.replace(/_/g, "a._")} of [${value}]) ;`;
+  let js = ts;
+  return { js, ts };
 }
 
 async function verify(test, transform, testCases) {
-  let verbose = process.argv.indexOf('--verbose') >= 0
-  let indent = t => t.replace(/\n/g, '\n  ')
-  let newline = false
-  console.log(`${test.name} (${transform.name}):`)
+  let verbose = process.argv.indexOf("--verbose") >= 0;
+  let indent = (t) => t.replace(/\n/g, "\n  ");
+  let newline = false;
+  console.log(`${test.name} (${transform.name}):`);
 
   await concurrentMap(testCases, 20, async (testCase) => {
-    let { js, ts } = test(testCase)
-    let expected
+    let { js, ts } = test(testCase);
+    let expected;
     try {
-      expected = evaluate(js)
+      expected = evaluate(js);
     } catch (e) {
-      return
+      return;
     }
 
-    let transformed
+    let transformed;
     try {
-      transformed = await transform(ts)
+      transformed = await transform(ts);
     } catch (e) {
-      process.stdout.write('T')
-      newline = true
+      process.stdout.write("T");
+      newline = true;
 
       if (verbose) {
-        console.log('\n' + '='.repeat(80))
-        console.log(indent(`Original code:\n${ts}`))
-        console.log(indent(`Transform error:\n${e}`))
-        newline = false
+        console.log("\n" + "=".repeat(80));
+        console.log(indent(`Original code:\n${ts}`));
+        console.log(indent(`Transform error:\n${e}`));
+        newline = false;
       }
-      return
+      return;
     }
 
-    let actual
+    let actual;
     try {
-      actual = evaluate(transformed)
+      actual = evaluate(transformed);
     } catch (e) {
-      actual = e + ''
+      actual = e + "";
     }
 
     if (actual !== expected) {
-      process.stdout.write(actual.indexOf('SyntaxError') >= 0 ? 'S' : 'X')
-      newline = true
+      process.stdout.write(actual.indexOf("SyntaxError") >= 0 ? "S" : "X");
+      newline = true;
 
       if (verbose) {
-        console.log('\n' + '='.repeat(80))
-        console.log(indent(`Original code:\n${ts}`))
-        console.log(indent(`Transformed code:\n${transformed}`))
-        console.log(indent(`Expected output:\n${expected}`))
-        console.log(indent(`Actual output:\n${actual}`))
-        newline = false
+        console.log("\n" + "=".repeat(80));
+        console.log(indent(`Original code:\n${ts}`));
+        console.log(indent(`Transformed code:\n${transformed}`));
+        console.log(indent(`Expected output:\n${expected}`));
+        console.log(indent(`Actual output:\n${actual}`));
+        newline = false;
       }
     } else {
-      process.stdout.write('-')
-      newline = true
+      process.stdout.write("-");
+      newline = true;
     }
-  })
+  });
 
-  if (newline) process.stdout.write('\n')
+  if (newline) process.stdout.write("\n");
 }
 
 function concurrentMap(items, batch, callback) {
   return new Promise((resolve, reject) => {
-    let index = 0
-    let pending = 0
+    let index = 0;
+    let pending = 0;
     let next = () => {
       if (index === items.length && pending === 0) {
-        resolve()
+        resolve();
       } else if (index < items.length) {
-        let item = items[index++]
-        pending++
-        callback(item).then(() => {
-          pending--
-          next()
-        }, e => {
-          items.length = 0
-          reject(e)
-        })
+        let item = items[index++];
+        pending++;
+        callback(item).then(
+          () => {
+            pending--;
+            next();
+          },
+          (e) => {
+            items.length = 0;
+            reject(e);
+          }
+        );
       }
-    }
-    for (let i = 0; i < batch; i++)next()
-  })
+    };
+    for (let i = 0; i < batch; i++) next();
+  });
 }
 
 async function main() {
-  let es = require('./esbuild').installForTests()
-  let esbuild = async (x) => (await es.transform(x, { target: 'es6', loader: 'ts' })).code.trim()
+  let es = require("./esbuild").installForTests();
+  let esbuild = async (x) =>
+    (await es.transform(x, { target: "es6", loader: "ts" })).code.trim();
 
   console.log(`
 Options:
@@ -357,7 +387,7 @@ Legend:
   - = The test passed
   X = The test failed
   T = The transform function itself failed
-  S = The generated code has a syntax error`)
+  S = The generated code has a syntax error`);
 
   let tests = [
     // Bindings
@@ -385,18 +415,20 @@ Legend:
 
     // TypeScript-specific
     NamespaceExport,
-  ]
-  let transforms = [
-    esbuild,
-  ]
-  let testCases = generateTestCases(100)
+  ];
+  let transforms = [esbuild];
+  let testCases = generateTestCases(100);
 
   for (let transform of transforms) {
-    console.log()
+    console.log();
     for (let test of tests) {
-      await verify(test, transform, testCases)
+      await verify(test, transform, testCases);
     }
   }
 }
 
-main().catch(e => setTimeout(() => { throw e }))
+main().catch((e) =>
+  setTimeout(() => {
+    throw e;
+  })
+);

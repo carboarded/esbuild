@@ -875,8 +875,10 @@ func (r resolverQuery) dirInfoCached(path string) *dirInfo {
 	return cached
 }
 
-var errParseErrorImportCycle = errors.New("(import cycle)")
-var errParseErrorAlreadyLogged = errors.New("(error already logged)")
+var (
+	errParseErrorImportCycle   = errors.New("(import cycle)")
+	errParseErrorAlreadyLogged = errors.New("(error already logged)")
+)
 
 // This may return "parseErrorAlreadyLogged" in which case there was a syntax
 // error, but it's already been reported. No further errors should be logged.

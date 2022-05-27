@@ -175,7 +175,7 @@ func DecodeVLQUTF16(encoded []uint16) (int, int, bool) {
 	}
 
 	// Recover the value
-	var value = vlq >> 1
+	value := vlq >> 1
 	if (vlq & 1) != 0 {
 		value = -value
 	}

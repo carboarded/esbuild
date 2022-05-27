@@ -1,15 +1,19 @@
-const { installForTests } = require('./esbuild');
-const childProcess = require('child_process');
-const assert = require('assert');
-const path = require('path');
-const fs = require('fs');
+const { installForTests } = require("./esbuild");
+const childProcess = require("child_process");
+const assert = require("assert");
+const path = require("path");
+const fs = require("fs");
 
 const repoDir = path.dirname(__dirname);
-const testDir = path.join(repoDir, 'scripts', '.terser-tests');
-const terserDir = path.join(repoDir, 'demo', 'terser');
+const testDir = path.join(repoDir, "scripts", ".terser-tests");
+const terserDir = path.join(repoDir, "demo", "terser");
 let U;
 
-main().catch(e => setTimeout(() => { throw e }));
+main().catch((e) =>
+  setTimeout(() => {
+    throw e;
+  })
+);
 
 async function main() {
   // Terser's stdout comparisons fail if this is true since stdout contains
@@ -17,29 +21,33 @@ async function main() {
   process.stdout.isTTY = false;
 
   // Make sure the tests are installed
-  console.log('Downloading terser...');
-  childProcess.execSync('make demo/terser', { cwd: repoDir, stdio: 'pipe' });
+  console.log("Downloading terser...");
+  childProcess.execSync("make demo/terser", { cwd: repoDir, stdio: "pipe" });
   U = require(terserDir);
 
   // Create a fresh test directory
   childProcess.execSync(`rm -fr "${testDir}"`);
-  fs.mkdirSync(testDir)
+  fs.mkdirSync(testDir);
 
   // Start the esbuild service
   const esbuild = installForTests();
 
   // Find test files
-  const compressDir = path.join(terserDir, 'test', 'compress');
-  const files = fs.readdirSync(compressDir).filter(name => name.endsWith('.js'));
+  const compressDir = path.join(terserDir, "test", "compress");
+  const files = fs
+    .readdirSync(compressDir)
+    .filter((name) => name.endsWith(".js"));
 
   // Run all tests concurrently
   let passedTotal = 0;
   let failedTotal = 0;
-  const runTest = file => test_file(esbuild, path.join(compressDir, file))
-    .then(({ passed, failed }) => {
-      passedTotal += passed;
-      failedTotal += failed;
-    });
+  const runTest = (file) =>
+    test_file(esbuild, path.join(compressDir, file)).then(
+      ({ passed, failed }) => {
+        passedTotal += passed;
+        failedTotal += failed;
+      }
+    );
   await Promise.all(files.map(runTest));
 
   // Clean up test output
@@ -55,28 +63,35 @@ async function test_file(esbuild, file) {
   let passed = 0;
   let failed = 0;
   const tests = parse_test(file);
-  const runTest = name => test_case(esbuild, tests[name])
-    .then(() => passed++)
-    .catch(e => {
-      failed++;
-      console.error(`❌ ${file}: ${name}: ${(e && e.message || e).trim()}\n`);
-      pass = false;
-    });
+  const runTest = (name) =>
+    test_case(esbuild, tests[name])
+      .then(() => passed++)
+      .catch((e) => {
+        failed++;
+        console.error(
+          `❌ ${file}: ${name}: ${((e && e.message) || e).trim()}\n`
+        );
+        pass = false;
+      });
   await Promise.all(Object.keys(tests).map(runTest));
   return { passed, failed };
 }
 
 // Modified from "terser/demo/test/compress.js"
 async function test_case(esbuild, test) {
-  const sandbox = require(path.join(terserDir, 'test', 'sandbox'));
-  const log = (format, args) => { throw new Error(tmpl(format, args)); };
+  const sandbox = require(path.join(terserDir, "test", "sandbox"));
+  const log = (format, args) => {
+    throw new Error(tmpl(format, args));
+  };
 
-  var semver = require(path.join(terserDir, 'node_modules', 'semver'));
+  var semver = require(path.join(terserDir, "node_modules", "semver"));
   var output_options = test.beautify || {};
 
   // Generate the input code
-  if (test.input instanceof U.AST_SimpleStatement
-    && test.input.body instanceof U.AST_TemplateString) {
+  if (
+    test.input instanceof U.AST_SimpleStatement &&
+    test.input.body instanceof U.AST_TemplateString
+  ) {
     try {
       var input = U.parse(test.input.body.segments[0].value);
     } catch (ex) {
@@ -91,7 +106,7 @@ async function test_case(esbuild, test) {
       ecma: 2015,
       beautify: true,
       quote_style: 3,
-      keep_quoted_props: true
+      keep_quoted_props: true,
     });
   }
 
@@ -99,10 +114,13 @@ async function test_case(esbuild, test) {
   try {
     U.parse(input_code);
   } catch (ex) {
-    log("!!! Cannot parse input\n---INPUT---\n{input}\n--PARSE ERROR--\n{error}\n\n", {
-      input: input_formatted,
-      error: ex,
-    });
+    log(
+      "!!! Cannot parse input\n---INPUT---\n{input}\n--PARSE ERROR--\n{error}\n\n",
+      {
+        input: input_formatted,
+        error: ex,
+      }
+    );
     return false;
   }
 
@@ -113,7 +131,8 @@ async function test_case(esbuild, test) {
     ascii_only: output_options.ascii_only,
     comments: false,
   };
-  var ast_as_string = U.AST_Node.from_mozilla_ast(ast).print_to_string(mozilla_options);
+  var ast_as_string =
+    U.AST_Node.from_mozilla_ast(ast).print_to_string(mozilla_options);
 
   // Run esbuild as a minifier
   try {
@@ -126,10 +145,13 @@ async function test_case(esbuild, test) {
       if (!location) return `\nerror: ${text}`;
       const { file, line, column } = location;
       return `\n${file}:${line}:${column}: ERROR: ${text}`;
-    }
+    };
     log("!!! esbuild failed\n---INPUT---\n{input}\n---ERROR---\n{error}\n", {
       input: ast_as_string,
-      error: (e && e.message || e) + '' + (e.errors ? e.errors.map(formatError) : ''),
+      error:
+        ((e && e.message) || e) +
+        "" +
+        (e.errors ? e.errors.map(formatError) : ""),
     });
     return false;
   }
@@ -138,32 +160,41 @@ async function test_case(esbuild, test) {
   try {
     U.parse(output);
   } catch (ex) {
-    log("!!! Test matched expected result but cannot parse output\n---INPUT---\n{input}\n---OUTPUT---\n{output}\n--REPARSE ERROR--\n{error}\n\n", {
-      input: input_formatted,
-      output: output,
-      error: ex.stack,
-    });
+    log(
+      "!!! Test matched expected result but cannot parse output\n---INPUT---\n{input}\n---OUTPUT---\n{output}\n--REPARSE ERROR--\n{error}\n\n",
+      {
+        input: input_formatted,
+        output: output,
+        error: ex.stack,
+      }
+    );
     return false;
   }
 
   // Verify that the stdout matches our expectations
-  if (test.expect_stdout
-    && (!test.node_version || semver.satisfies(process.version, test.node_version))
-    && !process.env.TEST_NO_SANDBOX
+  if (
+    test.expect_stdout &&
+    (!test.node_version ||
+      semver.satisfies(process.version, test.node_version)) &&
+    !process.env.TEST_NO_SANDBOX
   ) {
     if (test.expect_stdout === true) {
       test.expect_stdout = sandbox.run_code(input_code, test.prepend_code);
     }
     var stdout = sandbox.run_code(output, test.prepend_code);
     if (!sandbox.same_stdout(test.expect_stdout, stdout)) {
-      log("!!! failed\n---INPUT---\n{input}\n---OUTPUT---\n{output}\n---EXPECTED {expected_type}---\n{expected}\n---ACTUAL {actual_type}---\n{actual}\n\n", {
-        input: input_formatted,
-        output: output,
-        expected_type: typeof test.expect_stdout == "string" ? "STDOUT" : "ERROR",
-        expected: test.expect_stdout,
-        actual_type: typeof stdout == "string" ? "STDOUT" : "ERROR",
-        actual: stdout,
-      });
+      log(
+        "!!! failed\n---INPUT---\n{input}\n---OUTPUT---\n{output}\n---EXPECTED {expected_type}---\n{expected}\n---ACTUAL {actual_type}---\n{actual}\n\n",
+        {
+          input: input_formatted,
+          output: output,
+          expected_type:
+            typeof test.expect_stdout == "string" ? "STDOUT" : "ERROR",
+          expected: test.expect_stdout,
+          actual_type: typeof stdout == "string" ? "STDOUT" : "ERROR",
+          actual: stdout,
+        }
+      );
       return false;
     }
   }
@@ -212,7 +243,10 @@ function as_toplevel(input, mangle_options) {
     throw new Error("Unsupported input syntax");
   for (var i = 0; i < input.body.length; i++) {
     var stat = input.body[i];
-    if (stat instanceof U.AST_SimpleStatement && stat.body instanceof U.AST_String)
+    if (
+      stat instanceof U.AST_SimpleStatement &&
+      stat.body instanceof U.AST_String
+    )
       input.body[i] = new U.AST_Directive(stat.body);
     else break;
   }
@@ -226,7 +260,7 @@ function parse_test(file) {
   // TODO try/catch can be removed after fixing https://github.com/mishoo/UglifyJS2/issues/348
   try {
     var ast = U.parse(script, {
-      filename: file
+      filename: file,
     });
   } catch (e) {
     console.log("Caught error while parsing tests in " + file + "\n");
@@ -235,8 +269,10 @@ function parse_test(file) {
   }
   var tests = {};
   var tw = new U.TreeWalker(function (node, descend) {
-    if (node instanceof U.AST_LabeledStatement
-      && tw.parent() instanceof U.AST_Toplevel) {
+    if (
+      node instanceof U.AST_LabeledStatement &&
+      tw.parent() instanceof U.AST_Toplevel
+    ) {
       var name = node.label.name;
       if (name in tests) {
         throw new Error('Duplicated test name "' + name + '" in ' + file);
@@ -250,12 +286,14 @@ function parse_test(file) {
   return tests;
 
   function croak(node) {
-    throw new Error(tmpl("Can't understand test file {file} [{line},{col}]\n{code}", {
-      file: file,
-      line: node.start.line,
-      col: node.start.col,
-      code: make_code(node, { beautify: false })
-    }));
+    throw new Error(
+      tmpl("Can't understand test file {file} [{line},{col}]\n{code}", {
+        file: file,
+        line: node.start.line,
+        col: node.start.col,
+        code: make_code(node, { beautify: false }),
+      })
+    );
   }
 
   function read_boolean(stat) {
@@ -275,11 +313,13 @@ function parse_test(file) {
         case "String":
           return body.value;
         case "Array":
-          return body.elements.map(function (element) {
-            if (element.TYPE !== "String")
-              throw new Error("Should be array of strings");
-            return element.value;
-          }).join("\n");
+          return body.elements
+            .map(function (element) {
+              if (element.TYPE !== "String")
+                throw new Error("Should be array of strings");
+              return element.value;
+            })
+            .join("\n");
       }
     }
     throw new Error("Should be string or array of strings");
@@ -317,7 +357,7 @@ function parse_test(file) {
           tmpl("Unsupported label {name} [{line},{col}]", {
             name: label.name,
             line: label.start.line,
-            col: label.start.col
+            col: label.start.col,
           })
         );
         var stat = node.body;
@@ -332,17 +372,26 @@ function parse_test(file) {
             test[label.name] = body.value;
           } else if (body instanceof U.AST_Call) {
             var ctor = global[body.expression.name];
-            assert.ok(ctor === Error || ctor.prototype instanceof Error, tmpl("Unsupported expect_stdout format [{line},{col}]", {
-              line: label.start.line,
-              col: label.start.col
-            }));
-            test[label.name] = ctor.apply(null, body.args.map(function (node) {
-              assert.ok(node instanceof U.AST_Constant, tmpl("Unsupported expect_stdout format [{line},{col}]", {
+            assert.ok(
+              ctor === Error || ctor.prototype instanceof Error,
+              tmpl("Unsupported expect_stdout format [{line},{col}]", {
                 line: label.start.line,
-                col: label.start.col
-              }));
-              return node.value;
-            }));
+                col: label.start.col,
+              })
+            );
+            test[label.name] = ctor.apply(
+              null,
+              body.args.map(function (node) {
+                assert.ok(
+                  node instanceof U.AST_Constant,
+                  tmpl("Unsupported expect_stdout format [{line},{col}]", {
+                    line: label.start.line,
+                    col: label.start.col,
+                  })
+                );
+                return node.value;
+              })
+            );
           } else {
             test[label.name] = read_string(stat) + "\n";
           }
@@ -366,7 +415,6 @@ function make_code(ast, options) {
 }
 
 function evaluate(code) {
-  if (code instanceof U.AST_Node)
-    code = make_code(code, { beautify: true });
+  if (code instanceof U.AST_Node) code = make_code(code, { beautify: true });
   return new Function("return(" + code + ")")();
 }

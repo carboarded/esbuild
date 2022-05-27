@@ -980,8 +980,7 @@ func (c *linkerContext) computeCrossChunkDependencies(chunks []chunkInfo) {
 			// Ignore uses that aren't top-level symbols
 			if otherChunkIndex := c.graph.Symbols.Get(importRef).ChunkIndex; otherChunkIndex.IsValid() {
 				if otherChunkIndex := otherChunkIndex.GetIndex(); otherChunkIndex != uint32(chunkIndex) {
-					chunkRepr.importsFromOtherChunks[otherChunkIndex] =
-						append(chunkRepr.importsFromOtherChunks[otherChunkIndex], crossChunkImportItem{ref: importRef})
+					chunkRepr.importsFromOtherChunks[otherChunkIndex] = append(chunkRepr.importsFromOtherChunks[otherChunkIndex], crossChunkImportItem{ref: importRef})
 					chunkMetas[otherChunkIndex].exports[importRef] = true
 				}
 			}
@@ -2600,12 +2599,11 @@ func (c *linkerContext) addExportsForExportStar(
 				}
 			} else if existing.SourceIndex != otherSourceIndex {
 				// Two different re-exports colliding makes it potentially ambiguous
-				existing.PotentiallyAmbiguousExportStarRefs =
-					append(existing.PotentiallyAmbiguousExportStarRefs, graph.ImportData{
-						SourceIndex: otherSourceIndex,
-						Ref:         name.Ref,
-						NameLoc:     name.AliasLoc,
-					})
+				existing.PotentiallyAmbiguousExportStarRefs = append(existing.PotentiallyAmbiguousExportStarRefs, graph.ImportData{
+					SourceIndex: otherSourceIndex,
+					Ref:         name.Ref,
+					NameLoc:     name.AliasLoc,
+				})
 				resolvedExports[alias] = existing
 			}
 		}
@@ -3613,9 +3611,12 @@ func (c *linkerContext) convertStmtsForChunk(sourceIndex uint32, stmtList *stmtL
 			} else {
 				if record.SourceIndex.IsValid() {
 					if otherRepr := c.graph.Files[record.SourceIndex.GetIndex()].InputFile.Repr.(*graph.JSRepr); otherRepr.Meta.Wrap == graph.WrapESM {
-						stmtList.insideWrapperPrefix = append(stmtList.insideWrapperPrefix, js_ast.Stmt{Loc: stmt.Loc,
+						stmtList.insideWrapperPrefix = append(stmtList.insideWrapperPrefix, js_ast.Stmt{
+							Loc: stmt.Loc,
 							Data: &js_ast.SExpr{Value: js_ast.Expr{Loc: stmt.Loc, Data: &js_ast.ECall{
-								Target: js_ast.Expr{Loc: stmt.Loc, Data: &js_ast.EIdentifier{Ref: otherRepr.AST.WrapperRef}}}}}})
+								Target: js_ast.Expr{Loc: stmt.Loc, Data: &js_ast.EIdentifier{Ref: otherRepr.AST.WrapperRef}},
+							}}},
+						})
 					}
 				}
 
@@ -4234,7 +4235,11 @@ func (c *linkerContext) generateEntryPointTailJS(
 				Data: &js_ast.SExportDefault{Value: js_ast.Stmt{
 					Data: &js_ast.SExpr{Value: js_ast.Expr{
 						Data: &js_ast.ECall{Target: js_ast.Expr{
-							Data: &js_ast.EIdentifier{Ref: repr.AST.WrapperRef}}}}}}}})
+							Data: &js_ast.EIdentifier{Ref: repr.AST.WrapperRef},
+						}},
+					}},
+				}},
+			})
 		} else {
 			if repr.Meta.Wrap == graph.WrapESM {
 				if repr.Meta.IsAsyncOrHasAsyncDependency {
@@ -4243,13 +4248,20 @@ func (c *linkerContext) generateEntryPointTailJS(
 						Data: &js_ast.SExpr{Value: js_ast.Expr{
 							Data: &js_ast.EAwait{Value: js_ast.Expr{
 								Data: &js_ast.ECall{Target: js_ast.Expr{
-									Data: &js_ast.EIdentifier{Ref: repr.AST.WrapperRef}}}}}}}})
+									Data: &js_ast.EIdentifier{Ref: repr.AST.WrapperRef},
+								}},
+							}},
+						}},
+					})
 				} else {
 					// "init_foo();"
 					stmts = append(stmts, js_ast.Stmt{
 						Data: &js_ast.SExpr{
 							Value: js_ast.Expr{Data: &js_ast.ECall{Target: js_ast.Expr{
-								Data: &js_ast.EIdentifier{Ref: repr.AST.WrapperRef}}}}}})
+								Data: &js_ast.EIdentifier{Ref: repr.AST.WrapperRef},
+							}}},
+						},
+					})
 				}
 			}
 

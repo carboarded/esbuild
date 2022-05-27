@@ -12,10 +12,12 @@ import (
 
 const SupportsColorEscapes = true
 
-var kernel32 = syscall.NewLazyDLL("kernel32.dll")
-var getConsoleMode = kernel32.NewProc("GetConsoleMode")
-var setConsoleTextAttribute = kernel32.NewProc("SetConsoleTextAttribute")
-var getConsoleScreenBufferInfo = kernel32.NewProc("GetConsoleScreenBufferInfo")
+var (
+	kernel32                   = syscall.NewLazyDLL("kernel32.dll")
+	getConsoleMode             = kernel32.NewProc("GetConsoleMode")
+	setConsoleTextAttribute    = kernel32.NewProc("SetConsoleTextAttribute")
+	getConsoleScreenBufferInfo = kernel32.NewProc("GetConsoleScreenBufferInfo")
+)
 
 type consoleScreenBufferInfo struct {
 	dwSizeX              int16

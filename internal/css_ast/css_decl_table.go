@@ -648,8 +648,10 @@ var KnownDeclarations = map[string]D{
 	"zoom":                        DZoom,
 }
 
-var typoDetector *helpers.TypoDetector
-var typoDetectorMutex sync.Mutex
+var (
+	typoDetector      *helpers.TypoDetector
+	typoDetectorMutex sync.Mutex
+)
 
 func MaybeCorrectDeclarationTypo(text string) (string, bool) {
 	// Ignore CSS variables, which should not be corrected to CSS properties
