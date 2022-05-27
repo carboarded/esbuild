@@ -291,9 +291,12 @@ func (p *parser) lowerColor(token css_ast.Token) css_ast.Token {
 					token.Text = "rgba"
 					commaToken := p.commaToken()
 					token.Children = &[]css_ast.Token{
-						{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexR(hex))}, commaToken,
-						{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexG(hex))}, commaToken,
-						{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexB(hex))}, commaToken,
+						{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexR(hex))},
+						commaToken,
+						{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexG(hex))},
+						commaToken,
+						{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexB(hex))},
+						commaToken,
 						{Kind: css_lexer.TNumber, Text: floatToStringForColor(float64(hexA(hex)) / 255)},
 					}
 				}
@@ -305,9 +308,12 @@ func (p *parser) lowerColor(token css_ast.Token) css_ast.Token {
 					token.Text = "rgba"
 					commaToken := p.commaToken()
 					token.Children = &[]css_ast.Token{
-						{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexR(hex))}, commaToken,
-						{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexG(hex))}, commaToken,
-						{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexB(hex))}, commaToken,
+						{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexR(hex))},
+						commaToken,
+						{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexG(hex))},
+						commaToken,
+						{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexB(hex))},
+						commaToken,
 						{Kind: css_lexer.TNumber, Text: floatToStringForColor(float64(hexA(hex)) / 255)},
 					}
 				}
@@ -639,9 +645,12 @@ func (p *parser) mangleColor(token css_ast.Token, hex uint32) css_ast.Token {
 			alpha = alpha[:space]
 		}
 		token.Children = &[]css_ast.Token{
-			{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexR(hex))}, commaToken,
-			{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexG(hex))}, commaToken,
-			{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexB(hex))}, commaToken,
+			{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexR(hex))},
+			commaToken,
+			{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexG(hex))},
+			commaToken,
+			{Kind: css_lexer.TNumber, Text: strconv.Itoa(hexB(hex))},
+			commaToken,
 			{Kind: css_lexer.TNumber, Text: alpha},
 		}
 	}

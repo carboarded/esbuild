@@ -1,23 +1,23 @@
-* [Architecture](#architecture)
-    * [Design principles](#design-principles)
-* [Overview](#overview)
-    * [Scan phase](#scan-phase)
-    * [Compile phase](#compile-phase)
-* [Notes about parsing](#notes-about-parsing)
-    * [Symbols and scopes](#symbols-and-scopes)
-    * [Constant folding](#constant-folding)
-    * [TypeScript parsing](#typescript-parsing)
-* [Notes about linking](#notes-about-linking)
-    * [CommonJS linking](#commonjs-linking)
-    * [ES6 linking](#es6-linking)
-    * [Hybrid CommonJS and ES6 modules](#hybrid-commonjs-and-es6-modules)
-    * [Scope hoisting](#scope-hoisting)
-    * [Converting ES6 imports to CommonJS imports](#converting-es6-imports-to-commonjs-imports)
-    * [The runtime library](#the-runtime-library)
-    * [Tree shaking](#tree-shaking)
-    * [Code splitting](#code-splitting)
-* [Notes about printing](#notes-about-printing)
-    * [Symbol minification](#symbol-minification)
+- [Architecture](#architecture)
+  - [Design principles](#design-principles)
+- [Overview](#overview)
+  - [Scan phase](#scan-phase)
+  - [Compile phase](#compile-phase)
+- [Notes about parsing](#notes-about-parsing)
+  - [Symbols and scopes](#symbols-and-scopes)
+  - [Constant folding](#constant-folding)
+  - [TypeScript parsing](#typescript-parsing)
+- [Notes about linking](#notes-about-linking)
+  - [CommonJS linking](#commonjs-linking)
+  - [ES6 linking](#es6-linking)
+  - [Hybrid CommonJS and ES6 modules](#hybrid-commonjs-and-es6-modules)
+  - [Scope hoisting](#scope-hoisting)
+  - [Converting ES6 imports to CommonJS imports](#converting-es6-imports-to-commonjs-imports)
+  - [The runtime library](#the-runtime-library)
+  - [Tree shaking](#tree-shaking)
+  - [Code splitting](#code-splitting)
+- [Notes about printing](#notes-about-printing)
+  - [Symbol minification](#symbol-minification)
 
 # Architecture Documentation
 
@@ -27,29 +27,29 @@ Note that there are some design decisions that have been made differently than o
 
 ### Design principles
 
-* **Maximize parallelism**
+- **Maximize parallelism**
 
-    Most of the time should be spent doing fully parallelizable work. This can be observed by taking a CPU trace using the `--trace=[file]` flag and viewing it using `go tool trace [file]`.
+  Most of the time should be spent doing fully parallelizable work. This can be observed by taking a CPU trace using the `--trace=[file]` flag and viewing it using `go tool trace [file]`.
 
-* **Avoid doing unnecessary work**
+- **Avoid doing unnecessary work**
 
-    For example, many bundlers have intermediate stages where they write out JavaScript code and read it back in using another tool. This work is unnecessary because if the tools used the same data structures, no conversion would be needed.
+  For example, many bundlers have intermediate stages where they write out JavaScript code and read it back in using another tool. This work is unnecessary because if the tools used the same data structures, no conversion would be needed.
 
-* **Transparently support both ES6 and CommonJS module syntax**
+- **Transparently support both ES6 and CommonJS module syntax**
 
-    The parser in esbuild processes a superset of both ES6 and CommonJS modules. It doesn't distinguish between ES6 modules and other modules so you can use both ES6 and CommonJS syntax in the same file if you'd like.
+  The parser in esbuild processes a superset of both ES6 and CommonJS modules. It doesn't distinguish between ES6 modules and other modules so you can use both ES6 and CommonJS syntax in the same file if you'd like.
 
-* **Try to do as few full-AST passes as possible for better cache locality**
+- **Try to do as few full-AST passes as possible for better cache locality**
 
-    Compilers usually have many more passes because separate passes makes code easier to understand and maintain. There are currently only three full-AST passes in esbuild because individual passes have been merged together as much as possible:
+  Compilers usually have many more passes because separate passes makes code easier to understand and maintain. There are currently only three full-AST passes in esbuild because individual passes have been merged together as much as possible:
 
-    1. Lexing + parsing + scope setup + symbol declaration
-    2. Symbol binding + constant folding + syntax lowering + syntax mangling
-    3. Printing + source map generation
+  1. Lexing + parsing + scope setup + symbol declaration
+  2. Symbol binding + constant folding + syntax lowering + syntax mangling
+  3. Printing + source map generation
 
-* **Structure things to permit a "watch mode" where compilation can happen incrementally**
+- **Structure things to permit a "watch mode" where compilation can happen incrementally**
 
-    Incremental builds mean only rebuilding changed files to the greatest extent possible. This means not re-running any of the full-AST passes on unchanged files. Data structures that live across builds must be immutable to allow sharing. Unfortunately the Go type system can't enforce this, so care must be taken to uphold this as the code evolves.
+  Incremental builds mean only rebuilding changed files to the greatest extent possible. This means not re-running any of the full-AST passes on unchanged files. Data structures that live across builds must be immutable to allow sharing. Unfortunately the Go type system can't enforce this, so care must be taken to uphold this as the code evolves.
 
 ## Overview
 
@@ -94,10 +94,10 @@ This is mostly pretty straightforward except for a few places where the parser h
 The constant folding and compile-time definition substitution is pretty minimal but is enough to handle libraries such as React which contain code like this:
 
 ```js
-if (process.env.NODE_ENV === 'production') {
-  module.exports = require('./cjs/react.production.min.js');
+if (process.env.NODE_ENV === "production") {
+	module.exports = require("./cjs/react.production.min.js");
 } else {
-  module.exports = require('./cjs/react.development.js');
+	module.exports = require("./cjs/react.development.js");
 }
 ```
 
@@ -130,30 +130,30 @@ Here's a simplified example to explain what this looks like:
 <tr><td>
 
 ```js
-exports.fn = () => 123
+exports.fn = () => 123;
 ```
 
 </td><td>
 
 ```js
-const foo = require('./foo')
-console.log(foo.fn())
+const foo = require("./foo");
+console.log(foo.fn());
 ```
 
 </td><td>
 
 ```js
 let __commonJS = (callback, module) => () => {
-  if (!module) {
-    module = {exports: {}};
-    callback(module.exports, module);
-  }
-  return module.exports;
+	if (!module) {
+		module = { exports: {} };
+		callback(module.exports, module);
+	}
+	return module.exports;
 };
 
 // foo.js
 var require_foo = __commonJS((exports) => {
-  exports.fn = () => 123;
+	exports.fn = () => 123;
 });
 
 // bar.js
@@ -177,14 +177,14 @@ Here's a simplified example to explain what this looks like:
 <tr><td>
 
 ```js
-export const fn = () => 123
+export const fn = () => 123;
 ```
 
 </td><td>
 
 ```js
-import {fn} from './foo'
-console.log(fn())
+import { fn } from "./foo";
+console.log(fn());
 ```
 
 </td><td>
@@ -245,19 +245,19 @@ The final bundle only includes the code visited during the tree shaking traversa
 ```js
 // net.js
 function get(url) {
-  return fetch(url).then((r) => r.text());
+	return fetch(url).then((r) => r.text());
 }
 
 // config.js
 let session = Math.random();
 let api = "/api?session=";
 function load() {
-  return get(api + session);
+	return get(api + session);
 }
 
 // index.js
 let el = document.getElementById("el");
-load().then((x) => el.textContent = x);
+load().then((x) => (el.textContent = x));
 ```
 
 ### Code splitting
@@ -285,42 +285,36 @@ Here are the final code splitting chunks for this example after linking:
 <tr><td>
 
 ```js
-import {
-  api,
-  session
-} from "./chunk.js";
+import { api, session } from "./chunk.js";
 
 // net.js
 function get(url) {
-  return fetch(url).then((r) => r.text());
+	return fetch(url).then((r) => r.text());
 }
 
 // config.js
 function load() {
-  return get(api + session);
+	return get(api + session);
 }
 
 // index.js
 let el = document.getElementById("el");
-load().then((x) => el.textContent = x);
+load().then((x) => (el.textContent = x));
 ```
 
 </td><td>
 
 ```js
-import {
-  api,
-  session
-} from "./chunk.js";
+import { api, session } from "./chunk.js";
 
 // net.js
 function put(url, body) {
-  fetch(url, {method: "PUT", body});
+	fetch(url, { method: "PUT", body });
 }
 
 // config.js
 function save(value) {
-  return put(api + session, value);
+	return put(api + session, value);
 }
 
 // settings.js
@@ -335,10 +329,7 @@ it.oninput = () => save(it.value);
 let session = Math.random();
 let api = "/api?session=";
 
-export {
-  api,
-  session
-};
+export { api, session };
 ```
 
 </td></tr>
@@ -353,23 +344,23 @@ To illustrate the problem, consider these three files:
 <tr><td>
 
 ```js
-import {data} from './data'
-console.log(data)
+import { data } from "./data";
+console.log(data);
 ```
 
 </td><td>
 
 ```js
-import {setData} from './data'
-setData(123)
+import { setData } from "./data";
+setData(123);
 ```
 
 </td><td>
 
 ```js
-export let data
+export let data;
 export function setData(value) {
-  data = value
+	data = value;
 }
 ```
 
@@ -383,9 +374,7 @@ If the two entry points `entry1.js` and `entry2.js` are bundled with the code sp
 <tr><td>
 
 ```js
-import {
-  data
-} from "./chunk.js";
+import { data } from "./chunk.js";
 
 // entry1.js
 console.log(data);
@@ -394,13 +383,11 @@ console.log(data);
 </td><td>
 
 ```js
-import {
-  data
-} from "./chunk.js";
+import { data } from "./chunk.js";
 
 // data.js
 function setData(value) {
-  data = value;
+	data = value;
 }
 
 // entry2.js
@@ -413,9 +400,7 @@ setData(123);
 // data.js
 let data;
 
-export {
-  data
-};
+export { data };
 ```
 
 </td></tr>
@@ -434,9 +419,7 @@ With this algorithm, the function `setData` in our example moves into the chunk 
 <tr><td>
 
 ```js
-import {
-  data
-} from "./chunk.js";
+import { data } from "./chunk.js";
 
 // entry1.js
 console.log(data);
@@ -445,9 +428,7 @@ console.log(data);
 </td><td>
 
 ```js
-import {
-  setData
-} from "./chunk.js";
+import { setData } from "./chunk.js";
 
 // entry2.js
 setData(123);
@@ -459,13 +440,10 @@ setData(123);
 // data.js
 let data;
 function setData(value) {
-  data = value;
+	data = value;
 }
 
-export {
-  data,
-  setData
-};
+export { data, setData };
 ```
 
 </td></tr>
@@ -491,12 +469,12 @@ An important part of JavaScript minification is symbol renaming. Internal symbol
 
 ```js
 function useReducer(reducer, initialState) {
-  let [state, setState] = useState(initialState);
-  function dispatch(action) {
-    let nextState = reducer(state, action);
-    setState(nextState);
-  }
-  return [state, dispatch];
+	let [state, setState] = useState(initialState);
+	function dispatch(action) {
+		let nextState = reducer(state, action);
+		setState(nextState);
+	}
+	return [state, dispatch];
 }
 ```
 
@@ -504,12 +482,12 @@ function useReducer(reducer, initialState) {
 
 ```js
 function useReducer(b, c) {
-  let [a, d] = useState(c);
-  function e(f) {
-    let g = b(a, f);
-    d(g);
-  }
-  return [a, e];
+	let [a, d] = useState(c);
+	function e(f) {
+		let g = b(a, f);
+		d(g);
+	}
+	return [a, e];
 }
 ```
 
@@ -542,38 +520,38 @@ The algorithm:
 
 1. For each input source file (in parallel)
 
-    1. Track information for each top-level statement while parsing
+   1. Track information for each top-level statement while parsing
 
-        Each top-level statement tracks the which symbols are used, how many times each symbol is used, which symbols it defines, and which nested scopes that top-level statement contains. Code splitting operates on top-level statement boundaries, so this information will tell us exactly what symbols to include in the frequency analysis after code splitting is complete. This information is collected during parsing.
+      Each top-level statement tracks the which symbols are used, how many times each symbol is used, which symbols it defines, and which nested scopes that top-level statement contains. Code splitting operates on top-level statement boundaries, so this information will tell us exactly what symbols to include in the frequency analysis after code splitting is complete. This information is collected during parsing.
 
-    2. Assign slots to symbols in nested scopes
+   2. Assign slots to symbols in nested scopes
 
-        Traverse the scope tree and assign slots to all symbols declared within each scope (skipping top-level scopes). Each scope in the scope tree starts assigning slots immediately after the maximum slot of the parent scope.
+      Traverse the scope tree and assign slots to all symbols declared within each scope (skipping top-level scopes). Each scope in the scope tree starts assigning slots immediately after the maximum slot of the parent scope.
 
 2. For each output chunk file (in parallel)
 
-    1. Create an array of frequency counters
+   1. Create an array of frequency counters
 
-        Each counter is indexed by slot and all counts are initially 0. The array length starts off being large enough to handle the maximum slot value of all files included in the chunk.
+      Each counter is indexed by slot and all counts are initially 0. The array length starts off being large enough to handle the maximum slot value of all files included in the chunk.
 
-    2. Assign slots for top-level symbols
+   2. Assign slots for top-level symbols
 
-        For each top-level statement included in the chunk, iterate over all top-level symbols declared in that statement and assign each symbol to a new slot by appending to the counter array. This slot will not overlap with any slots from nested scopes. The count starts off at 1 to represent the declaration.
+      For each top-level statement included in the chunk, iterate over all top-level symbols declared in that statement and assign each symbol to a new slot by appending to the counter array. This slot will not overlap with any slots from nested scopes. The count starts off at 1 to represent the declaration.
 
-    3. Accumulate symbol usage counts into slots
+   3. Accumulate symbol usage counts into slots
 
-        For each top-level statement included in the chunk, iterate over all symbol use records and increment the counter in that symbol's slot by the stored count from the symbol use record.
+      For each top-level statement included in the chunk, iterate over all symbol use records and increment the counter in that symbol's slot by the stored count from the symbol use record.
 
-    4. Sort slots by decreasing count
+   4. Sort slots by decreasing count
 
-        This should tell us which symbol slots should be assigned the shortest names to minimize file size.
+      This should tell us which symbol slots should be assigned the shortest names to minimize file size.
 
-    5. Assign names to slots in order
+   5. Assign names to slots in order
 
-        Names are assigned from a fixed sequence of identifiers that starts off using one-character names, then two-character names, and so on (i.e. `a b c ... aa ba ca ... aaa baa caa ...`). We must be careful to avoid any JavaScript keywords such as `do` and `if` that would cause syntax errors. We must also avoid the names of any "unbound" symbols, which are symbols that are used without being declared such as `$` for jQuery.
+      Names are assigned from a fixed sequence of identifiers that starts off using one-character names, then two-character names, and so on (i.e. `a b c ... aa ba ca ... aaa baa caa ...`). We must be careful to avoid any JavaScript keywords such as `do` and `if` that would cause syntax errors. We must also avoid the names of any "unbound" symbols, which are symbols that are used without being declared such as `$` for jQuery.
 
-    6. When printing, use the name in that symbol's slot
+   6. When printing, use the name in that symbol's slot
 
-        The printer only needs access to the array containing the names (indexed by slot) and a way of mapping a symbol reference to a slot index. This is a compact representation that doesn't need a lot of memory per chunk because the slot array length is O(unique symbol names) instead of O(number of symbols). The mapping of symbols from nested scopes (which is usually the majority of symbols) to their slot index is static and can be shared between all chunks.
+      The printer only needs access to the array containing the names (indexed by slot) and a way of mapping a symbol reference to a slot index. This is a compact representation that doesn't need a lot of memory per chunk because the slot array length is O(unique symbol names) instead of O(number of symbols). The mapping of symbols from nested scopes (which is usually the majority of symbols) to their slot index is static and can be shared between all chunks.
 
 It's worth mentioning that this algorithm must be performed three separate times because there are three separate symbol namespaces in JavaScript that need minification: normal symbols, [label symbols](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/label), and [private symbols](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_class_fields). The same name in separate namespaces can't conflict with each other, so it's ok to reuse the same name across namespaces.

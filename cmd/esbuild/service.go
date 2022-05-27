@@ -24,11 +24,13 @@ import (
 	"github.com/evanw/esbuild/pkg/cli"
 )
 
-type responseCallback func(interface{})
-type rebuildCallback func(uint32) []byte
-type watchStopCallback func()
-type serveStopCallback func()
-type pluginResolveCallback func(uint32, map[string]interface{}) []byte
+type (
+	responseCallback      func(interface{})
+	rebuildCallback       func(uint32) []byte
+	watchStopCallback     func()
+	serveStopCallback     func()
+	pluginResolveCallback func(uint32, map[string]interface{}) []byte
+)
 
 type activeBuild struct {
 	rebuild       rebuildCallback

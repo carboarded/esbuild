@@ -19,16 +19,20 @@ import (
 	"github.com/evanw/esbuild/internal/sourcemap"
 )
 
-var positiveInfinity = math.Inf(1)
-var negativeInfinity = math.Inf(-1)
+var (
+	positiveInfinity = math.Inf(1)
+	negativeInfinity = math.Inf(-1)
+)
 
-const hexChars = "0123456789ABCDEF"
-const firstASCII = 0x20
-const lastASCII = 0x7E
-const firstHighSurrogate = 0xD800
-const lastHighSurrogate = 0xDBFF
-const firstLowSurrogate = 0xDC00
-const lastLowSurrogate = 0xDFFF
+const (
+	hexChars           = "0123456789ABCDEF"
+	firstASCII         = 0x20
+	lastASCII          = 0x7E
+	firstHighSurrogate = 0xD800
+	lastHighSurrogate  = 0xDBFF
+	firstLowSurrogate  = 0xDC00
+	lastLowSurrogate   = 0xDFFF
+)
 
 func canPrintWithoutEscape(c rune, asciiOnly bool) bool {
 	if c <= lastASCII {

@@ -1,14 +1,14 @@
-const { removeRecursiveSync } = require('./esbuild')
-const child_process = require('child_process')
-const path = require('path')
-const fs = require('fs')
+const { removeRecursiveSync } = require("./esbuild");
+const child_process = require("child_process");
+const path = require("path");
+const fs = require("fs");
 
 const tsconfigJson = {
   compilerOptions: {
-    module: 'CommonJS',
+    module: "CommonJS",
     strict: true,
   },
-}
+};
 
 const tests = {
   emptyBuildRequire: `
@@ -282,47 +282,70 @@ const tests = {
       }
     })
   `,
-}
+};
 
 async function main() {
-  let testDir = path.join(__dirname, '.ts-types-test')
-  removeRecursiveSync(testDir)
-  fs.mkdirSync(testDir, { recursive: true })
-  fs.writeFileSync(path.join(testDir, 'tsconfig.json'), JSON.stringify(tsconfigJson))
+  let testDir = path.join(__dirname, ".ts-types-test");
+  removeRecursiveSync(testDir);
+  fs.mkdirSync(testDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(testDir, "tsconfig.json"),
+    JSON.stringify(tsconfigJson)
+  );
 
-  const types = fs.readFileSync(path.join(__dirname, '..', 'lib', 'shared', 'types.ts'), 'utf8')
-  const esbuild_d_ts = path.join(testDir, 'node_modules', 'esbuild', 'index.d.ts')
-  fs.mkdirSync(path.dirname(esbuild_d_ts), { recursive: true })
-  fs.writeFileSync(esbuild_d_ts, `
+  const types = fs.readFileSync(
+    path.join(__dirname, "..", "lib", "shared", "types.ts"),
+    "utf8"
+  );
+  const esbuild_d_ts = path.join(
+    testDir,
+    "node_modules",
+    "esbuild",
+    "index.d.ts"
+  );
+  fs.mkdirSync(path.dirname(esbuild_d_ts), { recursive: true });
+  fs.writeFileSync(
+    esbuild_d_ts,
+    `
     declare module 'esbuild' {
-      ${types.replace(/export declare/g, 'export')}
+      ${types.replace(/export declare/g, "export")}
     }
-  `)
+  `
+  );
 
-  let files = []
+  let files = [];
   for (const name in tests) {
-    const input = path.join(testDir, name + '.ts')
-    fs.writeFileSync(input, tests[name])
-    files.push(input)
+    const input = path.join(testDir, name + ".ts");
+    fs.writeFileSync(input, tests[name]);
+    files.push(input);
   }
 
-  const tsc = path.join(__dirname, 'node_modules', 'typescript', 'lib', 'tsc.js')
-  const allTestsPassed = await new Promise(resolve => {
-    const child = child_process.spawn('node', [tsc, '--project', '.'], { cwd: testDir, stdio: 'inherit' })
-    child.on('close', exitCode => resolve(exitCode === 0))
-  })
+  const tsc = path.join(
+    __dirname,
+    "node_modules",
+    "typescript",
+    "lib",
+    "tsc.js"
+  );
+  const allTestsPassed = await new Promise((resolve) => {
+    const child = child_process.spawn("node", [tsc, "--project", "."], {
+      cwd: testDir,
+      stdio: "inherit",
+    });
+    child.on("close", (exitCode) => resolve(exitCode === 0));
+  });
 
   if (!allTestsPassed) {
-    console.error(`❌ typescript type tests failed`)
-    process.exit(1)
+    console.error(`❌ typescript type tests failed`);
+    process.exit(1);
   } else {
-    console.log(`✅ typescript type tests passed`)
-    removeRecursiveSync(testDir)
+    console.log(`✅ typescript type tests passed`);
+    removeRecursiveSync(testDir);
   }
 }
 
-main().catch(e => {
+main().catch((e) => {
   setTimeout(() => {
-    throw e
-  })
-})
+    throw e;
+  });
+});

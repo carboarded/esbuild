@@ -1,16 +1,20 @@
-const { installForTests } = require('./esbuild');
-const childProcess = require('child_process');
-const assert = require('assert');
-const path = require('path');
-const fs = require('fs');
+const { installForTests } = require("./esbuild");
+const childProcess = require("child_process");
+const assert = require("assert");
+const path = require("path");
+const fs = require("fs");
 
 const repoDir = path.dirname(__dirname);
-const testDir = path.join(repoDir, 'scripts', '.uglify-tests');
-const uglifyDir = path.join(repoDir, 'demo', 'uglify');
+const testDir = path.join(repoDir, "scripts", ".uglify-tests");
+const uglifyDir = path.join(repoDir, "demo", "uglify");
 const SKIP = {};
 let U;
 
-main().catch(e => setTimeout(() => { throw e }));
+main().catch((e) =>
+  setTimeout(() => {
+    throw e;
+  })
+);
 
 async function main() {
   // // Terser's stdout comparisons fail if this is true since stdout contains
@@ -18,36 +22,44 @@ async function main() {
   // process.stdout.isTTY = false;
 
   // Make sure the tests are installed
-  childProcess.execSync('make demo/uglify', { cwd: repoDir, stdio: 'pipe' });
-  U = require(path.join(uglifyDir, 'test', 'node'));
+  childProcess.execSync("make demo/uglify", { cwd: repoDir, stdio: "pipe" });
+  U = require(path.join(uglifyDir, "test", "node"));
 
   // Create a fresh test directory
   childProcess.execSync(`rm -fr "${testDir}"`);
-  fs.mkdirSync(testDir)
+  fs.mkdirSync(testDir);
 
   // Start the esbuild service
   const esbuild = installForTests();
 
   // Find test files
-  const compressDir = path.join(uglifyDir, 'test', 'compress');
-  const files = fs.readdirSync(compressDir).filter(name => name.endsWith('.js'));
+  const compressDir = path.join(uglifyDir, "test", "compress");
+  const files = fs
+    .readdirSync(compressDir)
+    .filter((name) => name.endsWith(".js"));
 
   // Run all tests concurrently
   let passedTotal = 0;
   let failedTotal = 0;
   let skippedTotal = 0;
-  const runTest = file => test_file(esbuild, path.join(compressDir, file))
-    .then(({ passed, failed, skipped }) => {
-      passedTotal += passed;
-      failedTotal += failed;
-      skippedTotal += skipped;
-    });
+  const runTest = (file) =>
+    test_file(esbuild, path.join(compressDir, file)).then(
+      ({ passed, failed, skipped }) => {
+        passedTotal += passed;
+        failedTotal += failed;
+        skippedTotal += skipped;
+      }
+    );
   await Promise.all(files.map(runTest));
 
   // Clean up test output
   childProcess.execSync(`rm -fr "${testDir}"`);
 
-  console.log(`${failedTotal} failed out of ${passedTotal + failedTotal}, with ${skippedTotal} skipped`);
+  console.log(
+    `${failedTotal} failed out of ${
+      passedTotal + failedTotal
+    }, with ${skippedTotal} skipped`
+  );
   if (failedTotal) {
     process.exit(1);
   }
@@ -58,29 +70,34 @@ async function test_file(esbuild, file) {
   let failed = 0;
   let skipped = 0;
   const tests = parse_test(file);
-  const runTest = name => test_case(esbuild, tests[name], path.basename(file))
-    .then(x => {
-      if (x === SKIP) {
-        skipped++;
-      } else {
-        passed++;
-      }
-    })
-    .catch(e => {
-      failed++;
-      console.error(`❌ ${file}: ${name}: ${(e && e.message || e).trim()}\n`);
-      pass = false;
-    });
+  const runTest = (name) =>
+    test_case(esbuild, tests[name], path.basename(file))
+      .then((x) => {
+        if (x === SKIP) {
+          skipped++;
+        } else {
+          passed++;
+        }
+      })
+      .catch((e) => {
+        failed++;
+        console.error(
+          `❌ ${file}: ${name}: ${((e && e.message) || e).trim()}\n`
+        );
+        pass = false;
+      });
   await Promise.all(Object.keys(tests).map(runTest));
   return { passed, failed, skipped };
 }
 
 // Modified from "uglify/demo/test/compress.js"
 async function test_case(esbuild, test, basename) {
-  const sandbox = require(path.join(uglifyDir, 'test', 'sandbox'));
-  const log = (format, args) => { throw new Error(tmpl(format, args)); };
+  const sandbox = require(path.join(uglifyDir, "test", "sandbox"));
+  const log = (format, args) => {
+    throw new Error(tmpl(format, args));
+  };
 
-  var semver = require(path.join(uglifyDir, 'node_modules', 'semver'));
+  var semver = require(path.join(uglifyDir, "node_modules", "semver"));
 
   // Generate the input code
   var input = to_toplevel(test.input, test.mangle);
@@ -96,18 +113,21 @@ async function test_case(esbuild, test, basename) {
   try {
     U.parse(input_code);
   } catch (ex) {
-    log([
-      "!!! Cannot parse input",
-      "---INPUT---",
-      "{input}",
-      "--PARSE ERROR--",
-      "{error}",
-      "",
-      "",
-    ].join("\n"), {
-      input: input_formatted,
-      error: ex,
-    });
+    log(
+      [
+        "!!! Cannot parse input",
+        "---INPUT---",
+        "{input}",
+        "--PARSE ERROR--",
+        "{error}",
+        "",
+        "",
+      ].join("\n"),
+      {
+        input: input_formatted,
+        error: ex,
+      }
+    );
   }
 
   // Ignore tests that no longer pass in modern versions of node. These tests
@@ -116,8 +136,15 @@ async function test_case(esbuild, test, basename) {
   //
   //   try{throw 42}catch(a){console.log(a);function a(){}}
   //
-  if (test.node_version && !semver.satisfies(process.version, test.node_version)) {
-    console.error("*** skipping test %j with node_version %j", test.name, test.node_version);
+  if (
+    test.node_version &&
+    !semver.satisfies(process.version, test.node_version)
+  ) {
+    console.error(
+      "*** skipping test %j with node_version %j",
+      test.name,
+      test.node_version
+    );
     return SKIP;
   }
 
@@ -125,7 +152,7 @@ async function test_case(esbuild, test, basename) {
   try {
     var { code: output } = await esbuild.transform(input_code, {
       minify: true,
-      target: 'esnext',
+      target: "esnext",
     });
   } catch (e) {
     // These tests fail because they contain syntax errors. These test failures
@@ -134,34 +161,38 @@ async function test_case(esbuild, test, basename) {
     //
     //   try{}catch(a){const a="aa"}
     //
-    if ([
-      'const.js: issue_4290_1',
-      'const.js: issue_4305_2',
-      'const.js: retain_catch',
-      'const.js: skip_braces',
-      'exports.js: defaults',
-      'exports.js: drop_unused',
-      'exports.js: hoist_exports_1',
-      'exports.js: hoist_exports_2',
-      'exports.js: keep_return_values',
-      'exports.js: mangle_rename',
-      'exports.js: mangle',
-      'exports.js: refs',
-      'imports.js: issue_4708_1',
-      'imports.js: issue_4708_2',
-      'let.js: issue_4290_1',
-      'let.js: issue_4305_2',
-      'let.js: retain_catch',
-      'let.js: skip_braces',
-      'reduce_vars.js: defun_catch_4',
-      'reduce_vars.js: defun_catch_5',
-      'templates.js: malformed_evaluate_1',
-      'templates.js: malformed_evaluate_2',
-      'templates.js: malformed_evaluate_3',
-      'varify.js: issue_4290_1_const',
-      'varify.js: issue_4290_1_let',
-    ].indexOf(`${basename}: ${test.name}`) >= 0) {
-      console.error(`*** skipping test with known syntax error: ${basename}: ${test.name}`);
+    if (
+      [
+        "const.js: issue_4290_1",
+        "const.js: issue_4305_2",
+        "const.js: retain_catch",
+        "const.js: skip_braces",
+        "exports.js: defaults",
+        "exports.js: drop_unused",
+        "exports.js: hoist_exports_1",
+        "exports.js: hoist_exports_2",
+        "exports.js: keep_return_values",
+        "exports.js: mangle_rename",
+        "exports.js: mangle",
+        "exports.js: refs",
+        "imports.js: issue_4708_1",
+        "imports.js: issue_4708_2",
+        "let.js: issue_4290_1",
+        "let.js: issue_4305_2",
+        "let.js: retain_catch",
+        "let.js: skip_braces",
+        "reduce_vars.js: defun_catch_4",
+        "reduce_vars.js: defun_catch_5",
+        "templates.js: malformed_evaluate_1",
+        "templates.js: malformed_evaluate_2",
+        "templates.js: malformed_evaluate_3",
+        "varify.js: issue_4290_1_const",
+        "varify.js: issue_4290_1_let",
+      ].indexOf(`${basename}: ${test.name}`) >= 0
+    ) {
+      console.error(
+        `*** skipping test with known syntax error: ${basename}: ${test.name}`
+      );
       return SKIP;
     }
 
@@ -176,16 +207,20 @@ async function test_case(esbuild, test, basename) {
     //
     //   async function await(){console.log("PASS")}await();
     //
-    if ([
-      'awaits.js: defun_name',
-      'awaits.js: drop_fname',
-      'awaits.js: functions_anonymous',
-      'awaits.js: functions_inner_var',
-      'awaits.js: issue_4335_1',
-      'awaits.js: keep_fname',
-      'classes.js: await',
-    ].indexOf(`${basename}: ${test.name}`) >= 0) {
-      console.error(`*** skipping test with top-level await as identifier: ${basename}: ${test.name}`);
+    if (
+      [
+        "awaits.js: defun_name",
+        "awaits.js: drop_fname",
+        "awaits.js: functions_anonymous",
+        "awaits.js: functions_inner_var",
+        "awaits.js: issue_4335_1",
+        "awaits.js: keep_fname",
+        "classes.js: await",
+      ].indexOf(`${basename}: ${test.name}`) >= 0
+    ) {
+      console.error(
+        `*** skipping test with top-level await as identifier: ${basename}: ${test.name}`
+      );
       return SKIP;
     }
 
@@ -193,17 +228,20 @@ async function test_case(esbuild, test, basename) {
     // a compile error to avoid code with incorrect behavior. This is a limitation
     // due to esbuild's three-pass design but it shouldn't matter in practice. It
     // just means esbuild rejects bad code at compile time instead of at run time.
-    if ([
-      'const.js: issue_4212_1',
-      'const.js: issue_4212_2',
-    ].indexOf(`${basename}: ${test.name}`) >= 0) {
-      console.error(`*** skipping test with assignment to an inlined constant: ${basename}: ${test.name}`);
+    if (
+      ["const.js: issue_4212_1", "const.js: issue_4212_2"].indexOf(
+        `${basename}: ${test.name}`
+      ) >= 0
+    ) {
+      console.error(
+        `*** skipping test with assignment to an inlined constant: ${basename}: ${test.name}`
+      );
       return SKIP;
     }
 
     log("!!! esbuild failed\n---INPUT---\n{input}\n---ERROR---\n{error}\n", {
       input: input_code,
-      error: e && e.message || e,
+      error: (e && e.message) || e,
     });
   }
 
@@ -211,29 +249,35 @@ async function test_case(esbuild, test, basename) {
   try {
     U.parse(output);
   } catch (ex) {
-    log([
-      "!!! Test matched expected result but cannot parse output",
-      "---INPUT---",
-      "{input}",
-      "---OUTPUT---",
-      "{output}",
-      "--REPARSE ERROR--",
-      "{error}",
-      "",
-      "",
-    ].join("\n"), {
-      input: input_formatted,
-      output: output,
-      error: ex && ex.stack || ex,
-    });
+    log(
+      [
+        "!!! Test matched expected result but cannot parse output",
+        "---INPUT---",
+        "{input}",
+        "---OUTPUT---",
+        "{output}",
+        "--REPARSE ERROR--",
+        "{error}",
+        "",
+        "",
+      ].join("\n"),
+      {
+        input: input_formatted,
+        output: output,
+        error: (ex && ex.stack) || ex,
+      }
+    );
   }
 
   // Verify that the stdout matches our expectations
-  if (test.expect_stdout && (!test.node_version || semver.satisfies(process.version, test.node_version))) {
+  if (
+    test.expect_stdout &&
+    (!test.node_version || semver.satisfies(process.version, test.node_version))
+  ) {
     var stdout = [run_code(input_code), run_code(input_code, true)];
     var toplevel = sandbox.has_toplevel({
       compress: test.options,
-      mangle: test.mangle
+      mangle: test.mangle,
     });
     var actual = stdout[toplevel ? 1 : 0];
     if (test.expect_stdout === true) {
@@ -242,49 +286,59 @@ async function test_case(esbuild, test, basename) {
     actual = run_code(output, toplevel);
 
     // Ignore the known failures in CI, but not otherwise
-    const isExpectingFailure = !process.env.CI ? false : [
-      // Stdout difference
-      'classes.js: issue_5015_2',
-      'const.js: issue_4225',
-      'const.js: issue_4229',
-      'const.js: issue_4245',
-      'const.js: use_before_init_3',
-      'destructured.js: funarg_side_effects_2',
-      'destructured.js: funarg_side_effects_3',
-      'let.js: issue_4225',
-      'let.js: issue_4229',
-      'let.js: issue_4245',
-      'let.js: use_before_init_3',
+    const isExpectingFailure = !process.env.CI
+      ? false
+      : [
+          // Stdout difference
+          "classes.js: issue_5015_2",
+          "const.js: issue_4225",
+          "const.js: issue_4229",
+          "const.js: issue_4245",
+          "const.js: use_before_init_3",
+          "destructured.js: funarg_side_effects_2",
+          "destructured.js: funarg_side_effects_3",
+          "let.js: issue_4225",
+          "let.js: issue_4229",
+          "let.js: issue_4245",
+          "let.js: use_before_init_3",
 
-      // Error difference
-      'dead-code.js: dead_code_2_should_warn',
-    ].indexOf(`${basename}: ${test.name}`) >= 0
+          // Error difference
+          "dead-code.js: dead_code_2_should_warn",
+        ].indexOf(`${basename}: ${test.name}`) >= 0;
 
     if (!sandbox.same_stdout(test.expect_stdout, actual)) {
       if (isExpectingFailure) {
-        console.error(`*** skipping test with known esbuild failure: ${basename}: ${test.name}`);
+        console.error(
+          `*** skipping test with known esbuild failure: ${basename}: ${test.name}`
+        );
         return SKIP;
       }
 
-      log([
-        "!!! failed",
-        "---INPUT---",
-        "{input}",
-        "---EXPECTED {expected_type}---",
-        "{expected}",
-        "---ACTUAL {actual_type}---",
-        "{actual}",
-        "",
-        "",
-      ].join("\n"), {
-        input: input_formatted,
-        expected_type: typeof test.expect_stdout == "string" ? "STDOUT" : "ERROR",
-        expected: test.expect_stdout,
-        actual_type: typeof actual == "string" ? "STDOUT" : "ERROR",
-        actual: actual,
-      });
+      log(
+        [
+          "!!! failed",
+          "---INPUT---",
+          "{input}",
+          "---EXPECTED {expected_type}---",
+          "{expected}",
+          "---ACTUAL {actual_type}---",
+          "{actual}",
+          "",
+          "",
+        ].join("\n"),
+        {
+          input: input_formatted,
+          expected_type:
+            typeof test.expect_stdout == "string" ? "STDOUT" : "ERROR",
+          expected: test.expect_stdout,
+          actual_type: typeof actual == "string" ? "STDOUT" : "ERROR",
+          actual: actual,
+        }
+      );
     } else if (isExpectingFailure) {
-      throw new Error(`UPDATE NEEDED: expected failure for ${basename}: ${test.name}, please remove this test from known failure list`);
+      throw new Error(
+        `UPDATE NEEDED: expected failure for ${basename}: ${test.name}, please remove this test from known failure list`
+      );
     }
   }
 }
@@ -338,7 +392,7 @@ function parse_test(file) {
   // TODO try/catch can be removed after fixing https://github.com/mishoo/UglifyJS/issues/348
   try {
     var ast = U.parse(script, {
-      filename: file
+      filename: file,
     });
   } catch (e) {
     console.error("Caught error while parsing tests in " + file);
@@ -347,8 +401,10 @@ function parse_test(file) {
   }
   var tests = Object.create(null);
   var tw = new U.TreeWalker(function (node, descend) {
-    if (node instanceof U.AST_LabeledStatement
-      && tw.parent() instanceof U.AST_Toplevel) {
+    if (
+      node instanceof U.AST_LabeledStatement &&
+      tw.parent() instanceof U.AST_Toplevel
+    ) {
       var name = node.label.name;
       if (name in tests) {
         throw new Error('Duplicated test name "' + name + '" in ' + file);
@@ -362,12 +418,14 @@ function parse_test(file) {
   return tests;
 
   function croak(node) {
-    throw new Error(tmpl("Can't understand test file {file} [{line},{col}]\n{code}", {
-      file: file,
-      line: node.start.line,
-      col: node.start.col,
-      code: make_code(node, { beautify: false })
-    }));
+    throw new Error(
+      tmpl("Can't understand test file {file} [{line},{col}]\n{code}", {
+        file: file,
+        line: node.start.line,
+        col: node.start.col,
+        code: make_code(node, { beautify: false }),
+      })
+    );
   }
 
   function read_string(stat) {
@@ -377,11 +435,13 @@ function parse_test(file) {
         case "String":
           return body.value;
         case "Array":
-          return body.elements.map(function (element) {
-            if (element.TYPE !== "String")
-              throw new Error("Should be array of strings");
-            return element.value;
-          }).join("\n");
+          return body.elements
+            .map(function (element) {
+              if (element.TYPE !== "String")
+                throw new Error("Should be array of strings");
+              return element.value;
+            })
+            .join("\n");
       }
     }
     throw new Error("Should be string or array of strings");
@@ -400,18 +460,21 @@ function parse_test(file) {
       }
       if (node instanceof U.AST_LabeledStatement) {
         var label = node.label;
-        assert.ok([
-          "input",
-          "expect",
-          "expect_exact",
-          "expect_warnings",
-          "expect_stdout",
-          "node_version",
-        ].indexOf(label.name) >= 0, tmpl("Unsupported label {name} [{line},{col}]", {
-          name: label.name,
-          line: label.start.line,
-          col: label.start.col
-        }));
+        assert.ok(
+          [
+            "input",
+            "expect",
+            "expect_exact",
+            "expect_warnings",
+            "expect_stdout",
+            "node_version",
+          ].indexOf(label.name) >= 0,
+          tmpl("Unsupported label {name} [{line},{col}]", {
+            name: label.name,
+            line: label.start.line,
+            col: label.start.col,
+          })
+        );
         var stat = node.body;
         if (label.name == "expect_exact" || label.name == "node_version") {
           test[label.name] = read_string(stat);
@@ -421,17 +484,26 @@ function parse_test(file) {
             test[label.name] = body.value;
           } else if (body instanceof U.AST_Call) {
             var ctor = global[body.expression.name];
-            assert.ok(ctor === Error || ctor.prototype instanceof Error, tmpl("Unsupported expect_stdout format [{line},{col}]", {
-              line: label.start.line,
-              col: label.start.col
-            }));
-            test[label.name] = ctor.apply(null, body.args.map(function (node) {
-              assert.ok(node instanceof U.AST_Constant, tmpl("Unsupported expect_stdout format [{line},{col}]", {
+            assert.ok(
+              ctor === Error || ctor.prototype instanceof Error,
+              tmpl("Unsupported expect_stdout format [{line},{col}]", {
                 line: label.start.line,
-                col: label.start.col
-              }));
-              return node.value;
-            }));
+                col: label.start.col,
+              })
+            );
+            test[label.name] = ctor.apply(
+              null,
+              body.args.map(function (node) {
+                assert.ok(
+                  node instanceof U.AST_Constant,
+                  tmpl("Unsupported expect_stdout format [{line},{col}]", {
+                    line: label.start.line,
+                    col: label.start.col,
+                  })
+                );
+                return node.value;
+              })
+            );
           } else {
             test[label.name] = read_string(stat) + "\n";
           }
@@ -447,10 +519,12 @@ function parse_test(file) {
 }
 
 function run_code(code, toplevel) {
-  const sandbox = require(path.join(uglifyDir, 'test', 'sandbox'));
+  const sandbox = require(path.join(uglifyDir, "test", "sandbox"));
 
   var result = sandbox.run_code(code, toplevel);
-  return typeof result == "string" ? result.replace(/\u001b\[\d+m/g, "") : result;
+  return typeof result == "string"
+    ? result.replace(/\u001b\[\d+m/g, "")
+    : result;
 }
 
 function tmpl() {
@@ -458,19 +532,27 @@ function tmpl() {
 }
 
 function to_toplevel(input, mangle_options) {
-  if (!(input instanceof U.AST_BlockStatement)) throw new Error("Unsupported input syntax");
+  if (!(input instanceof U.AST_BlockStatement))
+    throw new Error("Unsupported input syntax");
   var directive = true;
   var offset = input.start.line;
   var tokens = [];
-  var toplevel = new U.AST_Toplevel(input.transform(new U.TreeTransformer(function (node) {
-    if (U.push_uniq(tokens, node.start)) node.start.line -= offset;
-    if (!directive || node === input) return;
-    if (node instanceof U.AST_SimpleStatement && node.body instanceof U.AST_String) {
-      return new U.AST_Directive(node.body);
-    } else {
-      directive = false;
-    }
-  })));
+  var toplevel = new U.AST_Toplevel(
+    input.transform(
+      new U.TreeTransformer(function (node) {
+        if (U.push_uniq(tokens, node.start)) node.start.line -= offset;
+        if (!directive || node === input) return;
+        if (
+          node instanceof U.AST_SimpleStatement &&
+          node.body instanceof U.AST_String
+        ) {
+          return new U.AST_Directive(node.body);
+        } else {
+          directive = false;
+        }
+      })
+    )
+  );
   toplevel.figure_out_scope(mangle_options);
   return toplevel;
 }

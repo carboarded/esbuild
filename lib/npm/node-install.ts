@@ -1,34 +1,45 @@
-import { downloadedBinPath, ESBUILD_BINARY_PATH, pkgAndSubpathForCurrentPlatform } from './node-platform';
+import {
+  downloadedBinPath,
+  ESBUILD_BINARY_PATH,
+  pkgAndSubpathForCurrentPlatform,
+} from "./node-platform";
 
-import fs = require('fs');
-import os = require('os');
-import path = require('path');
-import zlib = require('zlib');
-import https = require('https');
-import child_process = require('child_process');
+import fs = require("fs");
+import os = require("os");
+import path = require("path");
+import zlib = require("zlib");
+import https = require("https");
+import child_process = require("child_process");
 
 declare const ESBUILD_VERSION: string;
-const toPath = path.join(__dirname, 'bin', 'esbuild');
+const toPath = path.join(__dirname, "bin", "esbuild");
 let isToPathJS = true;
 
 function validateBinaryVersion(...command: string[]): void {
-  command.push('--version');
-  const stdout = child_process.execFileSync(command.shift()!, command, {
-    // Without this, this install script strangely crashes with the error
-    // "EACCES: permission denied, write" but only on Ubuntu Linux when node is
-    // installed from the Snap Store. This is not a problem when you download
-    // the official version of node. The problem appears to be that stderr
-    // (i.e. file descriptor 2) isn't writable?
-    //
-    // More info:
-    // - https://snapcraft.io/ (what the Snap Store is)
-    // - https://nodejs.org/dist/ (download the official version of node)
-    // - https://github.com/evanw/esbuild/issues/1711#issuecomment-1027554035
-    //
-    stdio: 'pipe',
-  }).toString().trim();
+  command.push("--version");
+  const stdout = child_process
+    .execFileSync(command.shift()!, command, {
+      // Without this, this install script strangely crashes with the error
+      // "EACCES: permission denied, write" but only on Ubuntu Linux when node is
+      // installed from the Snap Store. This is not a problem when you download
+      // the official version of node. The problem appears to be that stderr
+      // (i.e. file descriptor 2) isn't writable?
+      //
+      // More info:
+      // - https://snapcraft.io/ (what the Snap Store is)
+      // - https://nodejs.org/dist/ (download the official version of node)
+      // - https://github.com/evanw/esbuild/issues/1711#issuecomment-1027554035
+      //
+      stdio: "pipe",
+    })
+    .toString()
+    .trim();
   if (stdout !== ESBUILD_VERSION) {
-    throw new Error(`Expected ${JSON.stringify(ESBUILD_VERSION)} but got ${JSON.stringify(stdout)}`);
+    throw new Error(
+      `Expected ${JSON.stringify(ESBUILD_VERSION)} but got ${JSON.stringify(
+        stdout
+      )}`
+    );
   }
 }
 
@@ -42,15 +53,20 @@ function isYarn(): boolean {
 
 function fetch(url: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    https.get(url, res => {
-      if ((res.statusCode === 301 || res.statusCode === 302) && res.headers.location)
-        return fetch(res.headers.location).then(resolve, reject);
-      if (res.statusCode !== 200)
-        return reject(new Error(`Server responded with ${res.statusCode}`));
-      let chunks: Buffer[] = [];
-      res.on('data', chunk => chunks.push(chunk));
-      res.on('end', () => resolve(Buffer.concat(chunks)));
-    }).on('error', reject);
+    https
+      .get(url, (res) => {
+        if (
+          (res.statusCode === 301 || res.statusCode === 302) &&
+          res.headers.location
+        )
+          return fetch(res.headers.location).then(resolve, reject);
+        if (res.statusCode !== 200)
+          return reject(new Error(`Server responded with ${res.statusCode}`));
+        let chunks: Buffer[] = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => resolve(Buffer.concat(chunks)));
+      })
+      .on("error", reject);
   });
 }
 
@@ -58,9 +74,12 @@ function extractFileFromTarGzip(buffer: Buffer, subpath: string): Buffer {
   try {
     buffer = zlib.unzipSync(buffer);
   } catch (err: any) {
-    throw new Error(`Invalid gzip data in archive: ${err && err.message || err}`);
+    throw new Error(
+      `Invalid gzip data in archive: ${(err && err.message) || err}`
+    );
   }
-  let str = (i: number, n: number) => String.fromCharCode(...buffer.subarray(i, i + n)).replace(/\0.*$/, '');
+  let str = (i: number, n: number) =>
+    String.fromCharCode(...buffer.subarray(i, i + n)).replace(/\0.*$/, "");
   let offset = 0;
   subpath = `package/${subpath}`;
   while (offset < buffer.length) {
@@ -83,24 +102,31 @@ function installUsingNPM(pkg: string, subpath: string, binPath: string): void {
 
   // Create a temporary directory inside the "esbuild" package with an empty
   // "package.json" file. We'll use this to run "npm install" in.
-  const esbuildLibDir = path.dirname(require.resolve('esbuild'));
-  const installDir = path.join(esbuildLibDir, 'npm-install');
+  const esbuildLibDir = path.dirname(require.resolve("esbuild"));
+  const installDir = path.join(esbuildLibDir, "npm-install");
   fs.mkdirSync(installDir);
   try {
-    fs.writeFileSync(path.join(installDir, 'package.json'), '{}');
+    fs.writeFileSync(path.join(installDir, "package.json"), "{}");
 
     // Run "npm install" in the temporary directory which should download the
     // desired package. Try to avoid unnecessary log output. This uses the "npm"
     // command instead of a HTTP request so that it hopefully works in situations
     // where HTTP requests are blocked but the "npm" command still works due to,
     // for example, a custom configured npm registry and special firewall rules.
-    child_process.execSync(`npm install --loglevel=error --prefer-offline --no-audit --progress=false ${pkg}@${ESBUILD_VERSION}`,
-      { cwd: installDir, stdio: 'pipe', env });
+    child_process.execSync(
+      `npm install --loglevel=error --prefer-offline --no-audit --progress=false ${pkg}@${ESBUILD_VERSION}`,
+      { cwd: installDir, stdio: "pipe", env }
+    );
 
     // Move the downloaded binary executable into place. The destination path
     // is the same one that the JavaScript API code uses so it will be able to
     // find the binary executable here later.
-    const installedBinPath = path.join(installDir, 'node_modules', pkg, subpath);
+    const installedBinPath = path.join(
+      installDir,
+      "node_modules",
+      pkg,
+      subpath
+    );
     fs.renameSync(installedBinPath, binPath);
   } finally {
     // Try to clean up afterward so we don't unnecessarily waste file system
@@ -138,13 +164,19 @@ function removeRecursive(dir: string): void {
 function applyManualBinaryPathOverride(overridePath: string): void {
   // Patch the CLI use case (the "esbuild" command)
   const pathString = JSON.stringify(overridePath);
-  fs.writeFileSync(toPath, `#!/usr/bin/env node\n` +
-    `require('child_process').execFileSync(${pathString}, process.argv.slice(2), { stdio: 'inherit' });\n`);
+  fs.writeFileSync(
+    toPath,
+    `#!/usr/bin/env node\n` +
+      `require('child_process').execFileSync(${pathString}, process.argv.slice(2), { stdio: 'inherit' });\n`
+  );
 
   // Patch the JS API use case (the "require('esbuild')" workflow)
-  const libMain = path.join(__dirname, 'lib', 'main.js');
-  const code = fs.readFileSync(libMain, 'utf8');
-  fs.writeFileSync(libMain, `var ESBUILD_BINARY_PATH = ${pathString};\n${code}`);
+  const libMain = path.join(__dirname, "lib", "main.js");
+  const code = fs.readFileSync(libMain, "utf8");
+  fs.writeFileSync(
+    libMain,
+    `var ESBUILD_BINARY_PATH = ${pathString};\n${code}`
+  );
 }
 
 function maybeOptimizePackage(binPath: string): void {
@@ -166,8 +198,8 @@ function maybeOptimizePackage(binPath: string): void {
   //
   // This optimization also doesn't apply when npm's "--ignore-scripts" flag is
   // used since in that case this install script will not be run.
-  if (os.platform() !== 'win32' && !isYarn()) {
-    const tempPath = path.join(__dirname, 'bin-esbuild');
+  if (os.platform() !== "win32" && !isYarn()) {
+    const tempPath = path.join(__dirname, "bin-esbuild");
     try {
       // First link the binary with a temporary file. If this fails and throws an
       // error, then we'll just end up doing nothing. This uses a hard link to
@@ -194,16 +226,27 @@ function maybeOptimizePackage(binPath: string): void {
   }
 }
 
-async function downloadDirectlyFromNPM(pkg: string, subpath: string, binPath: string): Promise<void> {
+async function downloadDirectlyFromNPM(
+  pkg: string,
+  subpath: string,
+  binPath: string
+): Promise<void> {
   // If that fails, the user could have npm configured incorrectly or could not
   // have npm installed. Try downloading directly from npm as a last resort.
   const url = `https://registry.npmjs.org/${pkg}/-/${pkg}-${ESBUILD_VERSION}.tgz`;
   console.error(`[esbuild] Trying to download ${JSON.stringify(url)}`);
   try {
-    fs.writeFileSync(binPath, extractFileFromTarGzip(await fetch(url), subpath));
+    fs.writeFileSync(
+      binPath,
+      extractFileFromTarGzip(await fetch(url), subpath)
+    );
     fs.chmodSync(binPath, 0o755);
   } catch (e: any) {
-    console.error(`[esbuild] Failed to download ${JSON.stringify(url)}: ${e && e.message || e}`);
+    console.error(
+      `[esbuild] Failed to download ${JSON.stringify(url)}: ${
+        (e && e.message) || e
+      }`
+    );
     throw e;
   }
 }
@@ -247,7 +290,11 @@ this. If that fails, you need to remove the "--no-optional" flag to use esbuild.
       console.error(`[esbuild] Trying to install package "${pkg}" using npm`);
       installUsingNPM(pkg, subpath, binPath);
     } catch (e2: any) {
-      console.error(`[esbuild] Failed to install package "${pkg}" using npm: ${e2 && e2.message || e2}`);
+      console.error(
+        `[esbuild] Failed to install package "${pkg}" using npm: ${
+          (e2 && e2.message) || e2
+        }`
+      );
 
       // If that didn't also work, then something is likely wrong with the "npm"
       // command. Attempt to compensate for this by manually downloading the
@@ -266,7 +313,7 @@ this. If that fails, you need to remove the "--no-optional" flag to use esbuild.
 checkAndPreparePackage().then(() => {
   if (isToPathJS) {
     // We need "node" before this command since it's a JavaScript file
-    validateBinaryVersion('node', toPath);
+    validateBinaryVersion("node", toPath);
   } else {
     // This is no longer a JavaScript file so don't run it using "node"
     validateBinaryVersion(toPath);

@@ -439,9 +439,8 @@ func TestTSClass(t *testing.T) {
 	expectPrintedTS(t, "class A<T extends number> implements B.C<D, E>, F.G<H, I> {}", "class A {\n}\n")
 	expectPrintedTS(t, "class A<T extends number> extends X implements B.C<D, E>, F.G<H, I> {}", "class A extends X {\n}\n")
 
-	reservedWordError :=
-		" is a reserved word and cannot be used in strict mode\n" +
-			"<stdin>: NOTE: All code inside a class is implicitly in strict mode\n"
+	reservedWordError := " is a reserved word and cannot be used in strict mode\n" +
+		"<stdin>: NOTE: All code inside a class is implicitly in strict mode\n"
 
 	expectParseErrorTS(t, "class Foo { constructor(public) {} }", "<stdin>: ERROR: \"public\""+reservedWordError)
 	expectParseErrorTS(t, "class Foo { constructor(protected) {} }", "<stdin>: ERROR: \"protected\""+reservedWordError)
